@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class LoginScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
@@ -29,11 +31,26 @@ class LoginScreen extends StatelessWidget {
             SizedBox(height: 20),
 
             ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => HomeScreen()),
-                );
+              onPressed: () async {
+                var url = Uri.parse("http://192.168.100.62/login.php");
+
+                var response = await http.post(url, body: {
+                  "email": emailController.text,
+                  "password": passwordController.text,
+                });
+
+                var data = jsonDecode(response.body);
+
+                if (data["status"] == "ok") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => HomeScreen()),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Login failed")),
+                  );
+                }
               },
               child: Text("Login"),
             )
