@@ -32,14 +32,20 @@ class LoginScreen extends StatelessWidget {
 
             ElevatedButton(
               onPressed: () async {
-                var url = Uri.parse("http://192.168.100.62/login.php");
+                var url = Uri.parse("https://pulseup-api.onrender.com/login");
 
-                var response = await http.post(url, body: {
-                  "email": emailController.text,
-                  "password": passwordController.text,
-                });
+                var response = await http.post(
+                  url,
+                  headers: {"Content-Type": "application/json"},
+                  body: jsonEncode({
+                    "email": emailController.text,
+                    "pass": passwordController.text,
+                  }),
+                );
 
                 var data = jsonDecode(response.body);
+
+                print(data);
 
                 if (data["status"] == "ok") {
                   Navigator.push(
