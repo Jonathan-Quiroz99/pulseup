@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'user_session.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
@@ -32,23 +32,21 @@ class LoginScreen extends StatelessWidget {
 
             ElevatedButton(
               onPressed: () async {
-                var url = Uri.parse("https://pulseup-api.onrender.com/login");
+                final supabase = Supabase.instance.client;
 
-                var response = await http.post(
-                  url,
-                  headers: {"Content-Type": "application/json"},
-                  body: jsonEncode({
-                    "email": emailController.text,
-                    "pass": passwordController.text,
-                  }),
-                );
+                final response = await supabase
+                .from('usuarios')
+                .select()
+                .eq('correo', emailController.text)
+                .eq('pass', passwordController.text)
+                .maybeSingle();
+                
+                print(response);
 
-                var data = jsonDecode(response.body);
-
-                print(data);
-
-                if (data["status"] == "ok") {
-                  Navigator.push(
+                if (response != null) {
+                  UserSession.currentUser = response;
+                  
+                  Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (_) => HomeScreen()),
                   );
