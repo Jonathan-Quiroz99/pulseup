@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/navigation/app_screen.dart';
+import '../../../core/navigation/app_screen.dart';
 
 class QuickActionsGrid extends StatelessWidget {
 

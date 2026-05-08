@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/navigation/app_screen.dart';
+import '../../../core/navigation/app_screen.dart';
 
-import '../../../../widgets/custom_card.dart';
+import '../../../widgets/custom_card.dart';
 
 class WorkoutCard extends StatelessWidget {
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../widgets/custom_card.dart';
+import '../../../widgets/custom_card.dart';
 
 class ChallengeCard extends StatelessWidget {
 
