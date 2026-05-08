@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:pulseup/core/navigation/app_screen.dart';
 import '../features/auth/user_session.dart';
 
 class AppDrawer extends StatelessWidget {
-  final Function(int) onNavigate;
+  final Function(AppScreen) onNavigate;
 
   const AppDrawer({
     super.key,
@@ -52,7 +53,7 @@ class AppDrawer extends StatelessWidget {
             title: "Inicio",
             onTap: () {
               Navigator.pop(context);
-              onNavigate(0);
+              onNavigate(AppScreen.dashboard);
             },
           ),
 
@@ -62,7 +63,7 @@ class AppDrawer extends StatelessWidget {
             title: "Rutinas",
             onTap: () {
               Navigator.pop(context);
-              onNavigate(1);
+              onNavigate(AppScreen.routines);
             },
           ),
 
@@ -72,7 +73,7 @@ class AppDrawer extends StatelessWidget {
             title: "Progreso",
             onTap: () {
               Navigator.pop(context);
-              onNavigate(2);
+              onNavigate(AppScreen.tracking);
             },
           ),
 
@@ -82,7 +83,7 @@ class AppDrawer extends StatelessWidget {
             title: "Check-in",
             onTap: () {
               Navigator.pop(context);
-              onNavigate(3);
+              onNavigate(AppScreen.checkin);
             },
           ),
 
@@ -94,7 +95,7 @@ class AppDrawer extends StatelessWidget {
             title: "Estado de cuenta",
             onTap: () {
               Navigator.pop(context);
-              onNavigate(4);
+              onNavigate(AppScreen.billing);
               // futura pantalla
             },
           ),
