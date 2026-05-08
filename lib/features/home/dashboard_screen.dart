@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/custom_card.dart';
-import '../auth/user_session.dart';
+//import '../auth/user_session.dart';
 
 class DashboardScreen extends StatelessWidget {
   final Function(int) onNavigate;
@@ -9,26 +9,14 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Inicio")),
-      body: SingleChildScrollView(
+    return SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-                  "PulseUp",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
-                ),
-                Text(
-                  "Hola, ${UserSession.currentUser?['nombre'] ?? 'usuarios'} 👋",
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                SizedBox(height: 4),
-                Text("Nivel 3 • 5 días activo 🔥"),
+          children: [            
+            SizedBox(height: 4),
+            Text("Nivel 3 • 5 días activo 🔥"),
+
 
             // 🔥 Tarjeta principal
             CustomCard(
@@ -113,9 +101,8 @@ class DashboardScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    }
 
   Widget _stat(String title, String value) {
   return Column(

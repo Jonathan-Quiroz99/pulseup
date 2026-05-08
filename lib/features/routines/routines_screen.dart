@@ -10,9 +10,7 @@ class RoutinesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Rutinas")),
-      body: ListView.builder(
+    return ListView.builder(
         padding: EdgeInsets.all(16),
         itemCount: routines.length,
         itemBuilder: (context, index) {
@@ -23,7 +21,6 @@ class RoutinesScreen extends StatelessWidget {
             ),
           );
         },
-      ),
-    );
+      );
   }
 }
