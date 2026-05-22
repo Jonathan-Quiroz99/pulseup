@@ -1,33 +1,63 @@
 import 'package:flutter/material.dart';
 
-import '../../../widgets/custom_card.dart';
+class ChallengeCard
+    extends StatelessWidget {
+  final int checkins;
 
-class ChallengeCard extends StatelessWidget {
-
-  const ChallengeCard({super.key});
+  const ChallengeCard({
+    super.key,
+    required this.checkins,
+  });
 
   @override
   Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
 
-    return CustomCard(
+      padding: const EdgeInsets.all(24),
+
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+
+        borderRadius:
+            BorderRadius.circular(24),
+      ),
 
       child: Column(
-
         crossAxisAlignment:
             CrossAxisAlignment.start,
 
         children: [
+          const Text(
+            "Actividad semanal",
 
-          Text("Reto activo 🔥"),
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 16,
+            ),
+          ),
 
-          SizedBox(height: 8),
+          const SizedBox(height: 10),
 
-          Text("10,000 pasos diarios"),
+          Text(
+            "$checkins visitas",
 
-          SizedBox(height: 8),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 30,
+              fontWeight:
+                  FontWeight.bold,
+            ),
+          ),
 
-          LinearProgressIndicator(
-            value: 0.6,
+          const SizedBox(height: 10),
+
+          const Text(
+            "Sigue manteniendo tu ritmo 🔥",
+
+            style: TextStyle(
+              color: Colors.white70,
+            ),
           ),
         ],
       ),

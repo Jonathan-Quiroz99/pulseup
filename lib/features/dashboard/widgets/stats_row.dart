@@ -1,53 +1,94 @@
 import 'package:flutter/material.dart';
 
+import '../models/dashboard_stats.dart';
+
 class StatsRow extends StatelessWidget {
+  final DashboardStats? stats;
 
-  const StatsRow({super.key});
+  const StatsRow({
+    super.key,
+    required this.stats,
+  });
 
-  Widget stat(
-    String title,
-    String value,
-  ) {
-
-    return Column(
+  @override
+  Widget build(BuildContext context) {
+    return Row(
       children: [
-
-        Text(
-          value,
-
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
+        _buildCard(
+          "Peso",
+          stats != null
+              ? "${stats!.weight}kg"
+              : "--",
         ),
 
-        SizedBox(height: 4),
+        const SizedBox(width: 12),
 
-        Text(
-          title,
-          style:
-              TextStyle(color: Colors.grey),
+        _buildCard(
+          "Grasa",
+          stats != null
+              ? "${stats!.bodyFat}%"
+              : "--",
+        ),
+
+        const SizedBox(width: 12),
+
+        _buildCard(
+          "Músculo",
+          stats != null
+              ? "${stats!.muscle}%"
+              : "--",
         ),
       ],
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildCard(
+    String title,
+    String value,
+  ) {
+    return Expanded(
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(
+          vertical: 20,
+        ),
 
-    return Row(
+        decoration: BoxDecoration(
+          color: const Color(
+            0xFF1E293B,
+          ),
 
-      mainAxisAlignment:
-          MainAxisAlignment.spaceBetween,
+          borderRadius:
+              BorderRadius.circular(
+            20,
+          ),
+        ),
 
-      children: [
+        child: Column(
+          children: [
+            Text(
+              value,
 
-        stat("Peso", "78kg"),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
 
-        stat("Grasa", "18%"),
+            const SizedBox(height: 6),
 
-        stat("Días", "12"),
-      ],
+            Text(
+              title,
+
+              style: const TextStyle(
+                color: Colors.white54,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
