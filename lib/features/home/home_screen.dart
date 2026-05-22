@@ -11,7 +11,7 @@ import '../auth/user_session.dart';
 
 import '../../widgets/app_drawer.dart';
 
-import 'dashboard/dashboard_screen.dart';
+import '../dashboard/dashboard_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
