@@ -14,18 +14,21 @@ class MembershipStatusCard
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      width: double.infinity,
+
+      padding: const EdgeInsets.all(20),
 
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
+
         borderRadius:
-            BorderRadius.circular(20),
+            BorderRadius.circular(22),
       ),
 
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
 
             decoration: BoxDecoration(
               color:
@@ -33,7 +36,7 @@ class MembershipStatusCard
 
               borderRadius:
                   BorderRadius.circular(
-                14,
+                18,
               ),
             ),
 
@@ -43,7 +46,7 @@ class MembershipStatusCard
             ),
           ),
 
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
 
           Expanded(
             child: Column(
@@ -56,9 +59,9 @@ class MembershipStatusCard
 
                   style: const TextStyle(
                     color: Colors.white,
+                    fontSize: 22,
                     fontWeight:
                         FontWeight.bold,
-                    fontSize: 17,
                   ),
                 ),
 
@@ -68,7 +71,8 @@ class MembershipStatusCard
                   status,
 
                   style: const TextStyle(
-                    color: Colors.white60,
+                    color: Colors.white70,
+                    fontSize: 16,
                   ),
                 ),
               ],

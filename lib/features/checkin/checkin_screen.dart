@@ -2,130 +2,237 @@ import 'package:flutter/material.dart';
 
 import '../auth/user_session.dart';
 
-import 'widgets/last_checkin_tile.dart';
-import 'widgets/membership_status_card.dart';
-import 'widgets/qr_card.dart';
+import 'models/checkin_record.dart';
 
-class CheckinScreen extends StatelessWidget {
+import 'services/checkin_service.dart';
+
+import 'widgets/qr_card.dart';
+import 'widgets/membership_status_card.dart';
+import 'widgets/latest_checkin_card.dart';
+import 'widgets/checkin_history_tile.dart';
+import 'widgets/checkin_empty_state.dart';
+
+class CheckinScreen extends StatefulWidget {
   const CheckinScreen({super.key});
 
   @override
+  State<CheckinScreen> createState() =>
+      _CheckinScreenState();
+}
+
+class _CheckinScreenState
+    extends State<CheckinScreen> {
+  bool loading = false;
+
+  List<CheckinRecord> checkins = [];
+
+  @override
+  void initState() {
+    super.initState();
+
+    loadCheckins();
+  }
+
+  Future<void> loadCheckins() async {
+    try {
+      setState(() {
+        loading = true;
+      });
+
+      final token = UserSession.token;
+
+      if (token == null) return;
+
+      final data =
+          await CheckinService()
+              .fetchMyCheckins(token);
+
+      if (!mounted) return;
+
+      setState(() {
+        checkins = data;
+      });
+    } catch (e) {
+      print(e);
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      loading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // TEMPORAL
-    // luego esto vendrá del backend
     final memberId =
-        UserSession.memberId ?? "MEM001";
+        UserSession.memberId ??
+            "MEM001";
 
     final memberName =
-        UserSession.displayName ??
-        "Usuario";
+        UserSession.fullName;
+
+    final membership =
+        UserSession.membership ??
+            "Premium";
+
+    final membershipStatus =
+        UserSession.membershipStatus ??
+            "Activa";
+
+    final latestCheckin =
+        checkins.isNotEmpty
+            ? checkins.first
+            : null;
 
     return Scaffold(
       backgroundColor:
           const Color(0xFF0F172A),
 
-      appBar: AppBar(
-        backgroundColor:
-            const Color(0xFF0F172A),
+      body: loading
+          ? const Center(
+              child:
+                  CircularProgressIndicator(),
+            )
 
-        elevation: 0,
-
-        title: const Text(
-          "Mi Check-In",
-        ),
-      ),
-
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-
-              Text(
-                memberName,
-
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight:
-                      FontWeight.bold,
+          : SafeArea(
+              child:
+                  SingleChildScrollView(
+                padding:
+                    const EdgeInsets.all(
+                  20,
                 ),
-              ),
 
-              const SizedBox(height: 8),
-
-              Text(
-                "Muestra este código al entrar",
-
-                style: const TextStyle(
-                  color: Colors.white60,
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              QRCard(
-                qrData: memberId,
-              ),
-
-              const SizedBox(height: 24),
-
-              const MembershipStatusCard(
-                membership:
-                    "Membresía Premium",
-
-                status: "Activa",
-              ),
-
-              const SizedBox(height: 16),
-
-              const LastCheckinTile(
-                date: "20 Mayo 2026",
-                time: "7:42 PM",
-              ),
-
-
-              SizedBox(
-                width: double.infinity,
-
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-
-                  style:
-                      ElevatedButton.styleFrom(
-                    backgroundColor:
-                        const Color(
-                      0xFF00FF88,
+                child: Column(
+                  children: [
+                    const SizedBox(
+                      height: 12,
                     ),
 
-                    padding:
-                        const EdgeInsets.symmetric(
-                      vertical: 16,
+                    Align(
+                      alignment:
+                          Alignment.centerLeft,
+
+                      child: Text(
+                        "Mi Check-In",
+
+                        style:
+                            const TextStyle(
+                          color:
+                              Colors.white,
+
+                          fontSize: 38,
+
+                          fontWeight:
+                              FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
 
-                  icon: const Icon(
-                    Icons.refresh,
-                    color: Colors.black,
-                  ),
-
-                  label: const Text(
-                    "Actualizar QR",
-
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight:
-                          FontWeight.bold,
+                    const SizedBox(
+                      height: 40,
                     ),
-                  ),
+
+                    Text(
+                      memberName,
+
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 10,
+                    ),
+
+                    const Text(
+                      "Muestra este código al entrar",
+
+                      style: TextStyle(
+                        color:
+                            Colors.white54,
+
+                        fontSize: 18,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 30,
+                    ),
+
+                    QRCard(
+                      qrData:
+                          "PULSEUP:$memberId",
+                    ),
+
+                    const SizedBox(
+                      height: 24,
+                    ),
+
+                    MembershipStatusCard(
+                      membership:
+                          "Membresía $membership",
+
+                      status:
+                          membershipStatus,
+                    ),
+
+                    const SizedBox(
+                      height: 20,
+                    ),
+
+                    if (latestCheckin !=
+                        null)
+                      LatestCheckinCard(
+                        checkin:
+                            latestCheckin,
+                      ),
+
+                    const SizedBox(
+                      height: 30,
+                    ),
+
+                    Align(
+                      alignment:
+                          Alignment.centerLeft,
+
+                      child: Text(
+                        "Historial reciente",
+
+                        style:
+                            const TextStyle(
+                          color:
+                              Colors.white,
+
+                          fontSize: 22,
+
+                          fontWeight:
+                              FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 18,
+                    ),
+
+                    if (checkins.isEmpty)
+                      const CheckinEmptyState(),
+
+                    ...checkins.map(
+                      (checkin) {
+                        return CheckinHistoryTile(
+                          checkin: checkin,
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

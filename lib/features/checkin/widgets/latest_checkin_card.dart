@@ -1,23 +1,26 @@
 import 'package:flutter/material.dart';
 
-class LastCheckinTile
-    extends StatelessWidget {
-  final String date;
-  final String time;
+import '../models/checkin_record.dart';
 
-  const LastCheckinTile({
+class LatestCheckinCard
+    extends StatelessWidget {
+  final CheckinRecord checkin;
+
+  const LatestCheckinCard({
     super.key,
-    required this.date,
-    required this.time,
+    required this.checkin,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
+
       padding: const EdgeInsets.all(18),
 
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
+
         borderRadius:
             BorderRadius.circular(20),
       ),
@@ -25,7 +28,7 @@ class LastCheckinTile
       child: Row(
         children: [
           const Icon(
-            Icons.access_time,
+            Icons.history,
             color: Color(0xFF00FF88),
           ),
 
@@ -41,17 +44,18 @@ class LastCheckinTile
                   "Último acceso",
 
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: Colors.white54,
                   ),
                 ),
 
                 const SizedBox(height: 4),
 
                 Text(
-                  "$date • $time",
+                  "${checkin.fecha} • ${checkin.hora}",
 
                   style: const TextStyle(
                     color: Colors.white,
+                    fontSize: 16,
                     fontWeight:
                         FontWeight.bold,
                   ),

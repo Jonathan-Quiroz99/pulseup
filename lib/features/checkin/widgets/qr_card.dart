@@ -18,6 +18,7 @@ class QRCard extends StatelessWidget {
 
       decoration: BoxDecoration(
         color: Colors.white,
+
         borderRadius:
             BorderRadius.circular(28),
       ),
@@ -27,7 +28,7 @@ class QRCard extends StatelessWidget {
           QrImageView(
             data: qrData,
             version: QrVersions.auto,
-            size: 240,
+            size: 260,
           ),
 
           const SizedBox(height: 20),
@@ -35,11 +36,10 @@ class QRCard extends StatelessWidget {
           const Text(
             "Escanea este código en recepción",
 
-            textAlign: TextAlign.center,
-
             style: TextStyle(
-              color: Colors.black87,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Colors.black,
             ),
           ),
         ],
