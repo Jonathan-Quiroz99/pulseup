@@ -1,238 +1,256 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_spacing.dart';
+
 import '../auth/user_session.dart';
 
 import 'models/checkin_record.dart';
 
 import 'services/checkin_service.dart';
 
-import 'widgets/qr_card.dart';
-import 'widgets/membership_status_card.dart';
-import 'widgets/latest_checkin_card.dart';
-import 'widgets/checkin_history_tile.dart';
 import 'widgets/checkin_empty_state.dart';
+import 'widgets/checkin_history_tile.dart';
+import 'widgets/latest_checkin_card.dart';
+import 'widgets/membership_status_card.dart';
+import 'widgets/qr_card.dart';
 
-class CheckinScreen extends StatefulWidget {
-  const CheckinScreen({super.key});
+class CheckinScreen
+    extends StatefulWidget {
+
+  const CheckinScreen({
+    super.key,
+  });
 
   @override
-  State<CheckinScreen> createState() =>
-      _CheckinScreenState();
+  State<CheckinScreen>
+      createState() =>
+          _CheckinScreenState();
 }
 
 class _CheckinScreenState
     extends State<CheckinScreen> {
-  bool loading = false;
 
-  List<CheckinRecord> checkins = [];
+  final CheckinService
+      _checkinService =
+          CheckinService();
+
+  bool _loading = false;
+
+  List<CheckinRecord>
+      _checkins = [];
 
   @override
   void initState() {
+
     super.initState();
 
-    loadCheckins();
+    _loadCheckins();
   }
 
-  Future<void> loadCheckins() async {
+  Future<void>
+      _loadCheckins() async {
+
     try {
+
       setState(() {
-        loading = true;
+        _loading = true;
       });
 
-      final token = UserSession.token;
+      final token =
+          UserSession.token;
 
       if (token == null) return;
 
       final data =
-          await CheckinService()
-              .fetchMyCheckins(token);
+          await _checkinService
+              .fetchMyCheckins(
+        token,
+      );
 
       if (!mounted) return;
 
       setState(() {
-        checkins = data;
+        _checkins = data;
       });
+
     } catch (e) {
-      print(e);
+
+      debugPrint(
+        'Checkin Error: $e',
+      );
+
+    } finally {
+
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+      });
     }
-
-    if (!mounted) return;
-
-    setState(() {
-      loading = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+
+    final theme =
+        Theme.of(context);
+
+    final textTheme =
+        theme.textTheme;
+
     final memberId =
         UserSession.memberId ??
-            "MEM001";
+            'MEM001';
 
     final memberName =
         UserSession.fullName;
 
     final membership =
         UserSession.membership ??
-            "Premium";
+            'Premium';
 
     final membershipStatus =
-        UserSession.membershipStatus ??
-            "Activa";
+        UserSession
+                .membershipStatus ??
+            'Activa';
 
     final latestCheckin =
-        checkins.isNotEmpty
-            ? checkins.first
+        _checkins.isNotEmpty
+            ? _checkins.first
             : null;
 
-    return Scaffold(
-      backgroundColor:
-          const Color(0xFF0F172A),
+    if (_loading) {
 
-      body: loading
-          ? const Center(
-              child:
-                  CircularProgressIndicator(),
-            )
+      return const Center(
+        child:
+            CircularProgressIndicator(),
+      );
+    }
 
-          : SafeArea(
-              child:
-                  SingleChildScrollView(
-                padding:
-                    const EdgeInsets.all(
-                  20,
-                ),
+    return SafeArea(
 
-                child: Column(
-                  children: [
-                    const SizedBox(
-                      height: 12,
-                    ),
+      child: SingleChildScrollView(
 
-                    Align(
-                      alignment:
-                          Alignment.centerLeft,
+        padding: const EdgeInsets.all(
+          AppSpacing.lg,
+        ),
 
-                      child: Text(
-                        "Mi Check-In",
+        child: Column(
 
-                        style:
-                            const TextStyle(
-                          color:
-                              Colors.white,
+          children: [
 
-                          fontSize: 38,
+            const SizedBox(
+              height: AppSpacing.xs,
+            ),
 
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
-                      ),
-                    ),
+            Align(
 
-                    const SizedBox(
-                      height: 40,
-                    ),
+              alignment:
+                  Alignment.centerLeft,
 
-                    Text(
-                      memberName,
-
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 10,
-                    ),
-
-                    const Text(
-                      "Muestra este código al entrar",
-
-                      style: TextStyle(
-                        color:
-                            Colors.white54,
-
-                        fontSize: 18,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 30,
-                    ),
-
-                    QRCard(
-                      qrData:
-                          "PULSEUP:$memberId",
-                    ),
-
-                    const SizedBox(
-                      height: 24,
-                    ),
-
-                    MembershipStatusCard(
-                      membership:
-                          "Membresía $membership",
-
-                      status:
-                          membershipStatus,
-                    ),
-
-                    const SizedBox(
-                      height: 20,
-                    ),
-
-                    if (latestCheckin !=
-                        null)
-                      LatestCheckinCard(
-                        checkin:
-                            latestCheckin,
-                      ),
-
-                    const SizedBox(
-                      height: 30,
-                    ),
-
-                    Align(
-                      alignment:
-                          Alignment.centerLeft,
-
-                      child: Text(
-                        "Historial reciente",
-
-                        style:
-                            const TextStyle(
-                          color:
-                              Colors.white,
-
-                          fontSize: 22,
-
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 18,
-                    ),
-
-                    if (checkins.isEmpty)
-                      const CheckinEmptyState(),
-
-                    ...checkins.map(
-                      (checkin) {
-                        return CheckinHistoryTile(
-                          checkin: checkin,
-                        );
-                      },
-                    ),
-                  ],
-                ),
+              child: Text(
+                'Mi Check-In',
+                style:
+                    textTheme.headlineMedium,
               ),
             ),
+
+            const SizedBox(
+              height: AppSpacing.xl,
+            ),
+
+            Text(
+              memberName,
+              style:
+                  textTheme.headlineSmall,
+            ),
+
+            const SizedBox(
+              height: AppSpacing.xs,
+            ),
+
+            Text(
+              'Muestra este código al entrar',
+              style:
+                  textTheme.bodyLarge,
+            ),
+
+            const SizedBox(
+              height: AppSpacing.xl,
+            ),
+
+            QRCard(
+              qrData:
+                  'PULSEUP:$memberId',
+            ),
+
+            const SizedBox(
+              height: AppSpacing.lg,
+            ),
+
+            MembershipStatusCard(
+              membership:
+                  'Membresía $membership',
+
+              status:
+                  membershipStatus,
+            ),
+
+            const SizedBox(
+              height: AppSpacing.md,
+            ),
+
+            if (latestCheckin != null)
+              LatestCheckinCard(
+                checkin:
+                    latestCheckin,
+              ),
+
+            const SizedBox(
+              height: AppSpacing.xl,
+            ),
+
+            Align(
+
+              alignment:
+                  Alignment.centerLeft,
+
+              child: Text(
+                'Historial reciente',
+                style:
+                    textTheme.titleLarge,
+              ),
+            ),
+
+            const SizedBox(
+              height: AppSpacing.md,
+            ),
+
+            if (_checkins.isEmpty)
+              const CheckinEmptyState(),
+
+            ..._checkins.map(
+
+              (checkin) {
+
+                return Padding(
+
+                  padding:
+                      const EdgeInsets.only(
+                    bottom:
+                        AppSpacing.sm,
+                  ),
+
+                  child:
+                      CheckinHistoryTile(
+                    checkin: checkin,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

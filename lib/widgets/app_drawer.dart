@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:pulseup/core/navigation/app_screen.dart';
+
+import '../core/navigation/app_screen.dart';
+import '../core/theme/app_spacing.dart';
+
 import '../features/auth/user_session.dart';
 
-class AppDrawer extends StatelessWidget {
-  final Function(AppScreen) onNavigate;
+class AppDrawer
+    extends StatelessWidget {
+
+  final Function(AppScreen)
+      onNavigate;
 
   const AppDrawer({
     super.key,
@@ -12,119 +18,193 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final theme =
+        Theme.of(context);
+
+    final textTheme =
+        theme.textTheme;
+
     return Drawer(
-      backgroundColor: Color(0xFF111111),
+
       child: ListView(
+
         padding: EdgeInsets.zero,
+
         children: [
 
-          // 🔥 Header
           UserAccountsDrawerHeader(
+
             decoration: BoxDecoration(
-              color: Colors.black,
+              color:
+                  theme.colorScheme.surface,
             ),
 
             accountName: Text(
-              UserSession.currentUser?['nombre'] ?? 'Usuario',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
+
+              UserSession.currentUser?[
+                      'nombre'] ??
+                  'Usuario',
+
+              style: textTheme.titleMedium
+                  ?.copyWith(
+                fontWeight:
+                    FontWeight.bold,
               ),
             ),
 
             accountEmail: Text(
-              "Membresía Activa",
-              style: TextStyle(
-                color: Colors.greenAccent,
+
+              'Membresía Activa',
+
+              style: textTheme.bodyMedium
+                  ?.copyWith(
+                color: theme
+                    .colorScheme.primary,
               ),
             ),
 
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.greenAccent,
+            currentAccountPicture:
+                CircleAvatar(
+
+              backgroundColor:
+                  theme.colorScheme.primary,
+
               child: Icon(
                 Icons.person,
-                color: Colors.black,
+                color: theme
+                    .colorScheme.onPrimary,
               ),
             ),
           ),
 
-          // 🏠 Inicio
           _drawerItem(
+
+            context: context,
+
             icon: Icons.home,
-            title: "Inicio",
+
+            title: 'Inicio',
+
             onTap: () {
+
               Navigator.pop(context);
-              onNavigate(AppScreen.dashboard);
+
+              onNavigate(
+                AppScreen.dashboard,
+              );
             },
           ),
 
-          // 💪 Rutinas
           _drawerItem(
+
+            context: context,
+
             icon: Icons.fitness_center,
-            title: "Rutinas",
+
+            title: 'Rutinas',
+
             onTap: () {
+
               Navigator.pop(context);
-              onNavigate(AppScreen.routines);
+
+              onNavigate(
+                AppScreen.routines,
+              );
             },
           ),
 
-          // 📈 Progreso
           _drawerItem(
+
+            context: context,
+
             icon: Icons.show_chart,
-            title: "Progreso",
+
+            title: 'Progreso',
+
             onTap: () {
+
               Navigator.pop(context);
-              onNavigate(AppScreen.tracking);
+
+              onNavigate(
+                AppScreen.tracking,
+              );
             },
           ),
 
-          // 📲 Check-in
           _drawerItem(
+
+            context: context,
+
             icon: Icons.qr_code,
-            title: "Check-in",
+
+            title: 'Check-in',
+
             onTap: () {
+
               Navigator.pop(context);
-              onNavigate(AppScreen.checkin);
+
+              onNavigate(
+                AppScreen.checkin,
+              );
             },
           ),
 
-          Divider(color: Colors.white24),
+          const Divider(),
 
-          // 💳 Estado de cuenta
           _drawerItem(
+
+            context: context,
+
             icon: Icons.credit_card,
-            title: "Estado de cuenta",
+
+            title: 'Estado de cuenta',
+
             onTap: () {
+
               Navigator.pop(context);
-              onNavigate(AppScreen.billing);
-              // futura pantalla
+
+              onNavigate(
+                AppScreen.billing,
+              );
             },
           ),
 
-          // 💰 Métodos de pago
           _drawerItem(
+
+            context: context,
+
             icon: Icons.payment,
-            title: "Métodos de pago",
-            onTap: () {
-              Navigator.pop(context);
-              
 
-              // futura pantalla
+            title: 'Métodos de pago',
+
+            onTap: () {
+
+              Navigator.pop(context);
             },
           ),
 
-          Divider(color: Colors.white24),
+          const Divider(),
 
-          // ⚙️ Configuración
           _drawerItem(
+
+            context: context,
+
             icon: Icons.settings,
-            title: "Configuración",
+
+            title: 'Configuración',
+
             onTap: () {},
           ),
 
-          // 🚪 Logout
           _drawerItem(
+
+            context: context,
+
             icon: Icons.logout,
-            title: "Cerrar sesión",
+
+            title: 'Cerrar sesión',
+
             onTap: () {},
           ),
         ],
@@ -133,21 +213,32 @@ class AppDrawer extends StatelessWidget {
   }
 
   Widget _drawerItem({
+
+    required BuildContext context,
+
     required IconData icon,
+
     required String title,
+
     required VoidCallback onTap,
   }) {
+
+    final theme =
+        Theme.of(context);
+
     return ListTile(
+
       leading: Icon(
         icon,
-        color: Colors.greenAccent,
+        color:
+            theme.colorScheme.primary,
       ),
 
-      title: Text(
-        title,
-        style: TextStyle(
-          color: Colors.white,
-        ),
+      title: Text(title),
+
+      contentPadding:
+          const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
       ),
 
       onTap: onTap,

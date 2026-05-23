@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_spacing.dart';
+
 import '../models/workout_exercise.dart';
+
 import 'routine_chip.dart';
 
-class ExerciseTile extends StatelessWidget {
+class ExerciseTile
+    extends StatelessWidget {
+
   final WorkoutExercise exercise;
 
   const ExerciseTile({
@@ -13,58 +18,77 @@ class ExerciseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
 
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(14),
+    final textTheme =
+        Theme.of(context).textTheme;
+
+    return Card(
+
+      margin: const EdgeInsets.only(
+        bottom: AppSpacing.sm,
       ),
 
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
 
-        children: [
-          Text(
-            exercise.name,
+        padding: const EdgeInsets.all(
+          AppSpacing.md,
+        ),
 
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+        child: Column(
+
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+
+          children: [
+
+            Text(
+              exercise.name,
+              style:
+                  textTheme.titleMedium,
             ),
-          ),
 
-          const SizedBox(height: 10),
+            const SizedBox(
+              height: AppSpacing.sm,
+            ),
 
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            Wrap(
 
-            children: [
-              RoutineChip(
-                icon: Icons.repeat,
-                text: "${exercise.sets} series",
-              ),
+              spacing: AppSpacing.sm,
 
-              RoutineChip(
-                icon: Icons.numbers,
-                text: "${exercise.reps} reps",
-              ),
+              runSpacing:
+                  AppSpacing.sm,
 
-              RoutineChip(
-                icon: Icons.timer,
-                text: "${exercise.rest}s",
-              ),
+              children: [
 
-              RoutineChip(
-                icon: Icons.sports_gymnastics,
-                text: exercise.muscleGroup,
-              ),
-            ],
-          ),
-        ],
+                RoutineChip(
+                  icon: Icons.repeat,
+                  text:
+                      '${exercise.sets} series',
+                ),
+
+                RoutineChip(
+                  icon: Icons.numbers,
+                  text:
+                      '${exercise.reps} reps',
+                ),
+
+                RoutineChip(
+                  icon: Icons.timer,
+                  text:
+                      '${exercise.rest}s',
+                ),
+
+                RoutineChip(
+                  icon:
+                      Icons.sports_gymnastics,
+
+                  text:
+                      exercise.muscleGroup,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

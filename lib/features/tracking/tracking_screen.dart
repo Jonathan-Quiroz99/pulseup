@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_spacing.dart';
+
 import '../auth/user_session.dart';
 
 import 'models/body_measurement.dart';
@@ -11,172 +13,219 @@ import 'widgets/measurement_tile.dart';
 import 'widgets/progress_summary_card.dart';
 import 'widgets/tracking_empty_state.dart';
 
-class TrackingScreen extends StatefulWidget {
-  const TrackingScreen({super.key});
+class TrackingScreen
+    extends StatefulWidget {
+
+  const TrackingScreen({
+    super.key,
+  });
 
   @override
-  State<TrackingScreen> createState() =>
-      _TrackingScreenState();
+  State<TrackingScreen>
+      createState() =>
+          _TrackingScreenState();
 }
 
 class _TrackingScreenState
     extends State<TrackingScreen> {
-  bool loading = false;
 
-  List<BodyMeasurement> measurements = [];
+  final TrackingService
+      _trackingService =
+          TrackingService();
 
-  // CONTROLLERS
-  final weightController =
+  bool _loading = false;
+
+  List<BodyMeasurement>
+      _measurements = [];
+
+  final _weightController =
       TextEditingController();
 
-  final fatController =
+  final _fatController =
       TextEditingController();
 
-  final muscleController =
+  final _muscleController =
       TextEditingController();
 
-  final waistController =
+  final _waistController =
       TextEditingController();
 
-  final chestController =
+  final _chestController =
       TextEditingController();
 
-  final armController =
+  final _armController =
       TextEditingController();
 
-  final notesController =
+  final _notesController =
       TextEditingController();
 
   @override
   void initState() {
+
     super.initState();
-    loadMeasurements();
+
+    _loadMeasurements();
   }
 
   @override
   void dispose() {
-    weightController.dispose();
 
-    fatController.dispose();
+    _weightController.dispose();
 
-    muscleController.dispose();
+    _fatController.dispose();
 
-    waistController.dispose();
+    _muscleController.dispose();
 
-    chestController.dispose();
+    _waistController.dispose();
 
-    armController.dispose();
+    _chestController.dispose();
 
-    notesController.dispose();
+    _armController.dispose();
+
+    _notesController.dispose();
 
     super.dispose();
   }
 
-  Future<void> loadMeasurements() async {
-    setState(() {
-      loading = true;
-    });
+  Future<void>
+      _loadMeasurements() async {
+
+    final token =
+        UserSession.token;
+
+    if (token == null ||
+        token.isEmpty) {
+
+      return;
+    }
 
     try {
-      final token = UserSession.token;
 
-      if (token == null || token.isEmpty) {
-        return;
-      }
+      setState(() {
+        _loading = true;
+      });
 
-      final data = await TrackingService()
-          .fetchMeasurements(token);
+      final data =
+          await _trackingService
+              .fetchMeasurements(
+        token,
+      );
 
       if (!mounted) return;
 
       setState(() {
-        measurements = data;
+        _measurements = data;
       });
+
     } catch (e) {
-      print(e);
+
+      debugPrint(
+        'Tracking Error: $e',
+      );
+
+    } finally {
+
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+      });
     }
-
-    if (!mounted) return;
-
-    setState(() {
-      loading = false;
-    });
   }
 
-  Future<void> saveMeasurement() async {
+  Future<void>
+      _saveMeasurement() async {
+
     try {
-      final token = UserSession.token;
+
+      final token =
+          UserSession.token;
 
       if (token == null) return;
 
-      await TrackingService().addMeasurement(
+      await _trackingService
+          .addMeasurement(
+
         token: token,
 
-        weightKg:
-            double.parse(weightController.text),
+        weightKg: double.parse(
+          _weightController.text,
+        ),
 
-        bodyFat:
-            double.parse(fatController.text),
+        bodyFat: double.parse(
+          _fatController.text,
+        ),
 
-        muscle:
-            double.parse(
-              muscleController.text,
-            ),
+        muscle: double.parse(
+          _muscleController.text,
+        ),
 
-        waist:
-            double.parse(
-              waistController.text,
-            ),
+        waist: double.parse(
+          _waistController.text,
+        ),
 
-        chest:
-            double.parse(
-              chestController.text,
-            ),
+        chest: double.parse(
+          _chestController.text,
+        ),
 
-        arm:
-            double.parse(
-              armController.text,
-            ),
+        arm: double.parse(
+          _armController.text,
+        ),
 
-        notes: notesController.text,
+        notes:
+            _notesController.text,
       );
 
-      // LIMPIAR CAMPOS
-      weightController.clear();
-
-      fatController.clear();
-
-      muscleController.clear();
-
-      waistController.clear();
-
-      chestController.clear();
-
-      armController.clear();
-
-      notesController.clear();
+      _clearFields();
 
       if (!mounted) return;
 
       Navigator.pop(context);
 
-      loadMeasurements();
+      _loadMeasurements();
+
     } catch (e) {
-      print(e);
+
+      debugPrint(
+        'Save Measurement Error: $e',
+      );
     }
   }
 
-  void openAddMeasurementSheet() {
+  void _clearFields() {
+
+    _weightController.clear();
+
+    _fatController.clear();
+
+    _muscleController.clear();
+
+    _waistController.clear();
+
+    _chestController.clear();
+
+    _armController.clear();
+
+    _notesController.clear();
+  }
+
+  void _openAddMeasurementSheet() {
+
     showModalBottomSheet(
+
       context: context,
 
       isScrollControlled: true,
 
-      backgroundColor: Colors.transparent,
+      backgroundColor:
+          Colors.transparent,
 
       builder: (_) {
+
         return Padding(
+
           padding: EdgeInsets.only(
+
             bottom:
                 MediaQuery.of(context)
                     .viewInsets
@@ -184,28 +233,30 @@ class _TrackingScreenState
           ),
 
           child: AddMeasurementSheet(
+
             weightController:
-                weightController,
+                _weightController,
 
             fatController:
-                fatController,
+                _fatController,
 
             muscleController:
-                muscleController,
+                _muscleController,
 
             waistController:
-                waistController,
+                _waistController,
 
             chestController:
-                chestController,
+                _chestController,
 
             armController:
-                armController,
+                _armController,
 
             notesController:
-                notesController,
+                _notesController,
 
-            onSave: saveMeasurement,
+            onSave:
+                _saveMeasurement,
           ),
         );
       },
@@ -214,135 +265,153 @@ class _TrackingScreenState
 
   @override
   Widget build(BuildContext context) {
+
+    if (_loading) {
+
+      return const Center(
+        child:
+            CircularProgressIndicator(),
+      );
+    }
+
+    if (_measurements.isEmpty) {
+
+      return Scaffold(
+
+        floatingActionButton:
+            FloatingActionButton(
+
+          onPressed:
+              _openAddMeasurementSheet,
+
+          child: const Icon(
+            Icons.add,
+          ),
+        ),
+
+        body:
+            const TrackingEmptyState(),
+      );
+    }
+
     final latest =
-        measurements.isNotEmpty
-            ? measurements.first
-            : null;
+        _measurements.first;
 
     return Scaffold(
-      backgroundColor:
-          const Color(0xFF0F172A),
 
       floatingActionButton:
           FloatingActionButton(
-        backgroundColor:
-            const Color(0xFF00FF88),
 
         onPressed:
-            openAddMeasurementSheet,
+            _openAddMeasurementSheet,
 
         child: const Icon(
           Icons.add,
-          color: Colors.black,
         ),
       ),
 
-      body: loading
-          ? const Center(
-              child:
-                  CircularProgressIndicator(),
-            )
+      body: SafeArea(
 
-          : measurements.isEmpty
-              ? const TrackingEmptyState()
+        child: Padding(
 
-              : SafeArea(
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.all(
-                      16,
-                    ),
+          padding: const EdgeInsets.all(
+            AppSpacing.md,
+          ),
 
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            ProgressSummaryCard(
-                              title: "Peso",
+          child: Column(
 
-                              value:
-                                  "${latest!.weightKg} kg",
+            children: [
 
-                              icon:
-                                  Icons.monitor_weight,
-                            ),
+              Row(
 
-                            const SizedBox(
-                              width: 12,
-                            ),
+                children: [
 
-                            ProgressSummaryCard(
-                              title: "Grasa",
-
-                              value:
-                                  "${latest.bodyFat}%",
-
-                              icon:
-                                  Icons.local_fire_department,
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(
-                          height: 12,
-                        ),
-
-                        Row(
-                          children: [
-                            ProgressSummaryCard(
-                              title: "Músculo",
-
-                              value:
-                                  "${latest.muscle}%",
-
-                              icon:
-                                  Icons.fitness_center,
-                            ),
-
-                            const SizedBox(
-                              width: 12,
-                            ),
-
-                            ProgressSummaryCard(
-                              title: "Cintura",
-
-                              value:
-                                  "${latest.waist} cm",
-
-                              icon:
-                                  Icons.straighten,
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(
-                          height: 24,
-                        ),
-
-                        Expanded(
-                          child:
-                              ListView.builder(
-                            itemCount:
-                                measurements
-                                    .length,
-
-                            itemBuilder:
-                                (
-                                  context,
-                                  index,
-                                ) {
-                              return MeasurementTile(
-                                measurement:
-                                    measurements[
-                                        index],
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+                  ProgressSummaryCard(
+                    title: 'Peso',
+                    value:
+                        '${latest.weightKg} kg',
+                    icon:
+                        Icons.monitor_weight,
                   ),
+
+                  const SizedBox(
+                    width: AppSpacing.sm,
+                  ),
+
+                  ProgressSummaryCard(
+                    title: 'Grasa',
+                    value:
+                        '${latest.bodyFat}%',
+                    icon: Icons
+                        .local_fire_department,
+                  ),
+                ],
+              ),
+
+              const SizedBox(
+                height: AppSpacing.sm,
+              ),
+
+              Row(
+
+                children: [
+
+                  ProgressSummaryCard(
+                    title: 'Músculo',
+                    value:
+                        '${latest.muscle}%',
+                    icon:
+                        Icons.fitness_center,
+                  ),
+
+                  const SizedBox(
+                    width: AppSpacing.sm,
+                  ),
+
+                  ProgressSummaryCard(
+                    title: 'Cintura',
+                    value:
+                        '${latest.waist} cm',
+                    icon:
+                        Icons.straighten,
+                  ),
+                ],
+              ),
+
+              const SizedBox(
+                height: AppSpacing.lg,
+              ),
+
+              Expanded(
+
+                child:
+                    ListView.separated(
+
+                  itemCount:
+                      _measurements.length,
+
+                  separatorBuilder:
+                      (_, __) =>
+                          const SizedBox(
+                    height:
+                        AppSpacing.sm,
+                  ),
+
+                  itemBuilder:
+                      (context, index) {
+
+                    return MeasurementTile(
+                      measurement:
+                          _measurements[
+                              index],
+                    );
+                  },
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

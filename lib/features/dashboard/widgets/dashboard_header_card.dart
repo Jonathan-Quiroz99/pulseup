@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_spacing.dart';
+
 class DashboardHeader
     extends StatelessWidget {
+
   final String name;
 
   const DashboardHeader({
@@ -11,57 +14,67 @@ class DashboardHeader
 
   @override
   Widget build(BuildContext context) {
+
+    final theme =
+        Theme.of(context);
+
+    final textTheme =
+        theme.textTheme;
+
     return Row(
+
       children: [
+
         Expanded(
+
           child: Column(
+
             crossAxisAlignment:
                 CrossAxisAlignment.start,
 
             children: [
-              const Text(
-                "Bienvenido 👋",
 
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 16,
-                ),
+              Text(
+                'Bienvenido 👋',
+                style:
+                    textTheme.bodyMedium,
               ),
 
-              const SizedBox(height: 4),
+              const SizedBox(
+                height: AppSpacing.xs,
+              ),
 
               Text(
                 name,
-
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 30,
-                  fontWeight:
-                      FontWeight.bold,
-                ),
+                style:
+                    textTheme.headlineLarge,
               ),
             ],
           ),
         ),
 
         Container(
-          padding:
-              const EdgeInsets.all(14),
+
+          padding: const EdgeInsets.all(
+            AppSpacing.md,
+          ),
 
           decoration: BoxDecoration(
-            color: const Color(
-              0x2200FF88,
-            ),
+
+            color: theme
+                .colorScheme.primary
+                .withOpacity(0.12),
 
             borderRadius:
                 BorderRadius.circular(
-              18,
+              AppSpacing.radiusMd,
             ),
           ),
 
-          child: const Icon(
+          child: Icon(
             Icons.fitness_center,
-            color: Color(0xFF00FF88),
+            color:
+                theme.colorScheme.primary,
           ),
         ),
       ],

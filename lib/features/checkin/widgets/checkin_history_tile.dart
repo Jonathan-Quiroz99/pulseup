@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_spacing.dart';
+
 import '../models/checkin_record.dart';
 
 class CheckinHistoryTile
     extends StatelessWidget {
+
   final CheckinRecord checkin;
 
   const CheckinHistoryTile({
@@ -13,82 +16,93 @@ class CheckinHistoryTile
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin:
-          const EdgeInsets.only(bottom: 14),
 
-      padding: const EdgeInsets.all(18),
+    final theme =
+        Theme.of(context);
 
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+    final textTheme =
+        theme.textTheme;
 
-        borderRadius:
-            BorderRadius.circular(18),
-      ),
+    return Card(
 
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
+      child: Padding(
 
-            decoration: BoxDecoration(
-              color:
-                  const Color(0x2200FF88),
+        padding: const EdgeInsets.all(
+          AppSpacing.md,
+        ),
 
-              borderRadius:
-                  BorderRadius.circular(
-                14,
+        child: Row(
+
+          children: [
+
+            Container(
+
+              padding: const EdgeInsets.all(
+                AppSpacing.sm,
+              ),
+
+              decoration: BoxDecoration(
+
+                color: theme
+                    .colorScheme.primary
+                    .withOpacity(0.12),
+
+                borderRadius:
+                    BorderRadius.circular(
+                  AppSpacing.radiusMd,
+                ),
+              ),
+
+              child: Icon(
+                Icons.login,
+                color:
+                    theme.colorScheme.primary,
               ),
             ),
 
-            child: const Icon(
-              Icons.login,
-              color: Color(0xFF00FF88),
+            const SizedBox(
+              width: AppSpacing.sm,
             ),
-          ),
 
-          const SizedBox(width: 14),
+            Expanded(
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              child: Column(
 
-              children: [
-                Text(
-                  checkin.tipo,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
 
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight:
-                        FontWeight.bold,
+                children: [
+
+                  Text(
+                    checkin.tipo,
+                    style:
+                        textTheme.titleMedium,
                   ),
-                ),
 
-                const SizedBox(height: 6),
-
-                Text(
-                  "${checkin.fecha} • ${checkin.hora}",
-
-                  style: const TextStyle(
-                    color: Colors.white70,
+                  const SizedBox(
+                    height: AppSpacing.xs,
                   ),
-                ),
 
-                const SizedBox(height: 4),
-
-                Text(
-                  checkin.puerta,
-
-                  style: const TextStyle(
-                    color: Colors.white54,
+                  Text(
+                    '${checkin.fecha} • ${checkin.hora}',
+                    style:
+                        textTheme.bodyMedium,
                   ),
-                ),
-              ],
+
+                  const SizedBox(
+                    height: AppSpacing.xs,
+                  ),
+
+                  Text(
+                    checkin.puerta,
+                    style:
+                        textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

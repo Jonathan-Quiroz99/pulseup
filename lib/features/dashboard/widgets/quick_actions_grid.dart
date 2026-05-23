@@ -1,63 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/navigation/app_screen.dart';
+import '../../../core/theme/app_spacing.dart';
 
-class QuickActionsGrid extends StatelessWidget {
+class QuickActionsGrid
+    extends StatelessWidget {
 
-  final Function(AppScreen) onNavigate;
+  final Function(AppScreen)
+      onNavigate;
 
   const QuickActionsGrid({
     super.key,
     required this.onNavigate,
   });
-
-  Widget action(
-    IconData icon,
-    String label,
-    VoidCallback onTap,
-  ) {
-
-    return GestureDetector(
-
-      onTap: onTap,
-
-      child: AnimatedContainer(
-
-        duration:
-            Duration(milliseconds: 150),
-
-        curve: Curves.easeInOut,
-
-        padding: EdgeInsets.all(12),
-
-        decoration: BoxDecoration(
-
-          color: Colors.white10,
-
-          borderRadius:
-              BorderRadius.circular(12),
-        ),
-
-        child: Column(
-
-          children: [
-
-            Icon(
-              icon,
-              color: Colors.greenAccent,
-            ),
-
-            SizedBox(height: 6),
-
-            Text(
-              label,
-              style: TextStyle(fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,46 +24,143 @@ class QuickActionsGrid extends StatelessWidget {
       shrinkWrap: true,
 
       physics:
-          NeverScrollableScrollPhysics(),
+          const NeverScrollableScrollPhysics(),
+
+      crossAxisSpacing:
+          AppSpacing.sm,
+
+      mainAxisSpacing:
+          AppSpacing.sm,
+
+      childAspectRatio: 0.9,
 
       children: [
 
-        action(
-          Icons.qr_code,
-          "Check-in",
+        _ActionItem(
+          icon: Icons.qr_code,
+          label: 'Check-In',
+          onTap: () {
 
-          () => onNavigate(
-            AppScreen.checkin,
-          ),
+            onNavigate(
+              AppScreen.checkin,
+            );
+          },
         ),
 
-        action(
-          Icons.fitness_center,
-          "Rutinas",
+        _ActionItem(
+          icon: Icons.fitness_center,
+          label: 'Rutinas',
+          onTap: () {
 
-          () => onNavigate(
-            AppScreen.routines,
-          ),
+            onNavigate(
+              AppScreen.routines,
+            );
+          },
         ),
 
-        action(
-          Icons.show_chart,
-          "Progreso",
+        _ActionItem(
+          icon: Icons.show_chart,
+          label: 'Progreso',
+          onTap: () {
 
-          () => onNavigate(
-            AppScreen.tracking,
-          ),
+            onNavigate(
+              AppScreen.tracking,
+            );
+          },
         ),
 
-        action(
-          Icons.credit_card,
-          "Cuenta",
+        _ActionItem(
+          icon: Icons.credit_card,
+          label: 'Cuenta',
+          onTap: () {
 
-          () => onNavigate(
-            AppScreen.billing,
-          ),
+            onNavigate(
+              AppScreen.billing,
+            );
+          },
         ),
       ],
+    );
+  }
+}
+
+class _ActionItem
+    extends StatelessWidget {
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _ActionItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+
+    final theme =
+        Theme.of(context);
+
+    final textTheme =
+        theme.textTheme;
+
+    return InkWell(
+
+      borderRadius:
+          BorderRadius.circular(
+        AppSpacing.radiusMd,
+      ),
+
+      onTap: onTap,
+
+      child: Ink(
+
+        decoration: BoxDecoration(
+
+          color:
+              theme.cardColor,
+
+          borderRadius:
+              BorderRadius.circular(
+            AppSpacing.radiusMd,
+          ),
+        ),
+
+        child: Padding(
+
+          padding: const EdgeInsets.all(
+            AppSpacing.sm,
+          ),
+
+          child: Column(
+
+            mainAxisAlignment:
+                MainAxisAlignment.center,
+
+            children: [
+
+              Icon(
+                icon,
+                color:
+                    theme.colorScheme.primary,
+              ),
+
+              const SizedBox(
+                height: AppSpacing.xs,
+              ),
+
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style:
+                    textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

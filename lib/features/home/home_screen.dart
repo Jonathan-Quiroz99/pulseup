@@ -1,95 +1,82 @@
 import 'package:flutter/material.dart';
 
-import 'package:pulseup/features/billing/billing_screen.dart';
-
 import '../../core/navigation/app_screen.dart';
-
-import '../routines/routines_screen.dart';
-import '../tracking/tracking_screen.dart';
-import '../checkin/checkin_screen.dart';
-import '../auth/user_session.dart';
 
 import '../../widgets/app_drawer.dart';
 
+import '../auth/user_session.dart';
+
+import '../billing/billing_screen.dart';
+import '../checkin/checkin_screen.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../routines/routines_screen.dart';
+import '../tracking/tracking_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() =>
+      _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState
+    extends State<HomeScreen> {
 
-  AppScreen currentScreen =
+  AppScreen _currentScreen =
       AppScreen.dashboard;
 
-  // 🔥 Cambiar pantalla
-  void changeTab(AppScreen screen) {
+  late final Map<AppScreen, Widget>
+      _screens = {
+
+    AppScreen.dashboard:
+        DashboardScreen(
+      onNavigate: _changeTab,
+    ),
+
+    AppScreen.routines:
+        const RoutinesScreen(),
+
+    AppScreen.tracking:
+        const TrackingScreen(),
+
+    AppScreen.checkin:
+        const CheckinScreen(),
+
+    AppScreen.billing:
+        const BillingScreen(),
+  };
+
+  void _changeTab(
+    AppScreen screen,
+  ) {
 
     setState(() {
-      currentScreen = screen;
+      _currentScreen = screen;
     });
   }
 
-  // 🔢 Enum -> BottomNav index
-  int getNavIndex() {
+  int _getNavIndex() {
 
-    switch (currentScreen) {
-
-      case AppScreen.dashboard:
-        return 0;
-
-      case AppScreen.routines:
-        return 1;
-
-      case AppScreen.tracking:
-        return 2;
-
-      case AppScreen.checkin:
-        return 3;
-
-      case AppScreen.billing:
-        return 4;
-    }
+    return AppScreen.values.indexOf(
+      _currentScreen,
+    );
   }
 
-  // 📱 Pantalla actual
-  Widget currentPage() {
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+  ) {
 
-    switch (currentScreen) {
+    final textTheme =
+        Theme.of(context).textTheme;
 
-      case AppScreen.dashboard:
-        return DashboardScreen(
-          onNavigate: changeTab,
-        );
+    switch (_currentScreen) {
 
-      case AppScreen.routines:
-        return RoutinesScreen();
-
-      case AppScreen.tracking:
-        return TrackingScreen();
-
-      case AppScreen.checkin:
-        return CheckinScreen();
-
-      case AppScreen.billing:
-        return BillingScreen();
-    }
-  }
-
-  // 🎯 AppBar dinámica
-  PreferredSizeWidget currentAppBar() {
-
-    switch (currentScreen) {
-
-      // 🏠 Dashboard
       case AppScreen.dashboard:
 
         return AppBar(
 
-          toolbarHeight: 70,
+          toolbarHeight: 72,
 
           title: Column(
 
@@ -102,21 +89,15 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
 
               Text(
-                "PulseUp",
-
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
+                'PulseUp',
+                style:
+                    textTheme.bodySmall,
               ),
 
               Text(
-                "Hola, ${UserSession.currentUser?['nombre'] ?? 'Usuario'} 👋",
-
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
+                'Hola, ${UserSession.currentUser?['nombre'] ?? 'Usuario'} 👋',
+                style:
+                    textTheme.titleLarge,
               ),
             ],
           ),
@@ -124,68 +105,84 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: [
 
             IconButton(
-              icon: Icon(Icons.notifications_none),
               onPressed: () {},
-            ),
-
-            Builder(
-              builder: (context) => IconButton(
-
-                icon: Icon(Icons.menu),
-
-                onPressed: () {
-                  Scaffold.of(context)
-                      .openEndDrawer();
-                },
+              icon: const Icon(
+                Icons.notifications_none,
               ),
             ),
+
+            _drawerButton(),
           ],
         );
 
-      // 💪 Rutinas
       case AppScreen.routines:
 
         return AppBar(
-          title: Text("Rutinas"),
+          title: const Text(
+            'Rutinas',
+          ),
         );
 
-      // 📈 Tracking
       case AppScreen.tracking:
 
         return AppBar(
-          title: Text("Progreso"),
+          title: const Text(
+            'Progreso',
+          ),
         );
 
-      // 📲 Check-In
       case AppScreen.checkin:
 
         return AppBar(
-          title: Text("Check-In"),
+          title: const Text(
+            'Check-In',
+          ),
         );
 
-      // 💳 Billing
       case AppScreen.billing:
 
         return AppBar(
 
-          title: Text("Estado de cuenta"),
+          title: const Text(
+            'Estado de cuenta',
+          ),
 
           actions: [
-
-            Builder(
-              builder: (context) => IconButton(
-
-                icon: Icon(Icons.menu),
-
-                onPressed: () {
-                  Scaffold.of(context)
-                      .openEndDrawer();
-                },
-              ),
-            ),
+            _drawerButton(),
           ],
         );
     }
+  }
+
+  Widget _drawerButton() {
+
+    return Builder(
+
+      builder: (context) {
+
+        return IconButton(
+
+          onPressed: () {
+
+            Scaffold.of(context)
+                .openEndDrawer();
+          },
+
+          icon: const Icon(
+            Icons.menu,
+          ),
+        );
+      },
+    );
+  }
+
+  void _onBottomNavTap(
+    int index,
+  ) {
+
+    _changeTab(
+      AppScreen.values[index],
+    );
   }
 
   @override
@@ -193,113 +190,75 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return PopScope(
 
-      // 🔙 Solo cerrar app
-      // si estamos en dashboard
       canPop:
-          currentScreen ==
+          _currentScreen ==
           AppScreen.dashboard,
 
       onPopInvoked: (didPop) {
 
         if (didPop) return;
 
-        // 🔙 Regresar a dashboard
-
-        setState(() {
-          currentScreen =
-              AppScreen.dashboard;
-        });
+        _changeTab(
+          AppScreen.dashboard,
+        );
       },
 
       child: Scaffold(
 
-        // 👉 Swipe desde borde derecho
-        endDrawerEnableOpenDragGesture:
-            true,
+        appBar:
+            _buildAppBar(context),
 
-        drawerEdgeDragWidth: 60,
-
-        // 🔥 AppBar global
-        appBar: currentAppBar(),
-
-        // 📂 Drawer global
         endDrawer: AppDrawer(
-          onNavigate: changeTab,
+          onNavigate: _changeTab,
         ),
 
-        // 📱 Screen actual
-        body: currentPage(),
+        body:
+            _screens[_currentScreen],
 
-        // 🔻 Bottom nav
         bottomNavigationBar:
             BottomNavigationBar(
 
-          currentIndex: getNavIndex(),
+          currentIndex:
+              _getNavIndex(),
 
-          type:
-              BottomNavigationBarType.fixed,
-
-          onTap: (index) {
-
-            switch (index) {
-
-              case 0:
-                changeTab(
-                  AppScreen.dashboard,
-                );
-                break;
-
-              case 1:
-                changeTab(
-                  AppScreen.routines,
-                );
-                break;
-
-              case 2:
-                changeTab(
-                  AppScreen.tracking,
-                );
-                break;
-
-              case 3:
-                changeTab(
-                  AppScreen.checkin,
-                );
-                break;
-
-              case 4:
-                changeTab(
-                  AppScreen.billing,
-                );
-                break;
-            }
-          },
+          onTap:
+              _onBottomNavTap,
 
           items: const [
 
             BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard),
-              label: "Inicio",
+              icon: Icon(
+                Icons.dashboard,
+              ),
+              label: 'Inicio',
             ),
 
             BottomNavigationBarItem(
-              icon: Icon(Icons.fitness_center),
-              label: "Rutinas",
+              icon: Icon(
+                Icons.fitness_center,
+              ),
+              label: 'Rutinas',
             ),
 
             BottomNavigationBarItem(
-              icon: Icon(Icons.show_chart),
-              label: "Progreso",
+              icon: Icon(
+                Icons.show_chart,
+              ),
+              label: 'Progreso',
             ),
 
             BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code),
-              label: "Check-In",
+              icon: Icon(
+                Icons.qr_code,
+              ),
+              label: 'Check-In',
             ),
 
             BottomNavigationBarItem(
-              icon: Icon(Icons.credit_card),
-              label: "Cuenta",
+              icon: Icon(
+                Icons.credit_card,
+              ),
+              label: 'Cuenta',
             ),
           ],
         ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../../core/theme/app_spacing.dart';
 import '../../services/api_service.dart';
+
 import '../home/home_screen.dart';
 import 'register_screen.dart';
 import 'user_session.dart';
@@ -17,17 +19,14 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState
     extends State<LoginScreen> {
 
-  final emailController =
+  final _emailController =
       TextEditingController();
 
-  final passwordController =
+  final _passwordController =
       TextEditingController();
 
   final ApiService _apiService =
       ApiService();
-
-  bool _isLoading = false;
-  bool _obscurePassword = true;
 
   final GoogleSignIn _googleSignIn =
       GoogleSignIn(
@@ -35,10 +34,19 @@ class _LoginScreenState
         '118869026911-7o2emhtca6vqlftlf30do7kcdp6vhqtb.apps.googleusercontent.com',
   );
 
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
   Future<void> _login() async {
 
-    if (emailController.text.isEmpty ||
-        passwordController.text.isEmpty) {
+    final email =
+        _emailController.text.trim();
+
+    final password =
+        _passwordController.text.trim();
+
+    if (email.isEmpty ||
+        password.isEmpty) {
 
       _showError(
         'Ingresa correo y contraseña',
@@ -55,22 +63,15 @@ class _LoginScreenState
 
       final response =
           await _apiService.memberLogin(
-        emailController.text.trim(),
-        passwordController.text.trim(),
+        email,
+        password,
       );
 
       _saveSession(response);
 
-      if (mounted) {
+      if (!mounted) return;
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                const HomeScreen(),
-          ),
-        );
-      }
+      _navigateToHome();
 
     } catch (e) {
 
@@ -99,28 +100,18 @@ class _LoginScreenState
 
       await _googleSignIn.signOut();
 
-      final GoogleSignInAccount?
-          googleUser =
+      final googleUser =
           await _googleSignIn.signIn();
 
       if (googleUser == null) {
-
-        setState(() {
-          _isLoading = false;
-        });
-
         return;
       }
 
-      final GoogleSignInAuthentication
-          googleAuth =
+      final googleAuth =
           await googleUser.authentication;
 
-      final String? idToken =
+      final idToken =
           googleAuth.idToken;
-
-      print('GOOGLE ID TOKEN:');
-      print(idToken);
 
       if (idToken == null ||
           idToken.isEmpty) {
@@ -137,20 +128,11 @@ class _LoginScreenState
 
       _saveSession(response);
 
-      if (mounted) {
+      if (!mounted) return;
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                const HomeScreen(),
-          ),
-        );
-      }
+      _navigateToHome();
 
     } catch (e) {
-
-      print('GOOGLE LOGIN ERROR: $e');
 
       _showError(
         'Google Login Error\n$e',
@@ -165,6 +147,17 @@ class _LoginScreenState
         });
       }
     }
+  }
+
+  void _navigateToHome() {
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            const HomeScreen(),
+      ),
+    );
   }
 
   void _saveSession(
@@ -194,9 +187,9 @@ class _LoginScreenState
 
     ScaffoldMessenger.of(context)
         .showSnackBar(
+
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
       ),
     );
   }
@@ -204,116 +197,105 @@ class _LoginScreenState
   @override
   Widget build(BuildContext context) {
 
+    final textTheme =
+        Theme.of(context).textTheme;
+
     return Scaffold(
 
       body: SafeArea(
 
-        child: Padding(
+        child: Center(
 
-          padding:
-              const EdgeInsets.all(20),
+          child: SingleChildScrollView(
 
-          child: Column(
+            padding: const EdgeInsets.all(
+              AppSpacing.lg,
+            ),
 
-            mainAxisAlignment:
-                MainAxisAlignment.center,
+            child: Column(
 
-            children: [
+              crossAxisAlignment:
+                  CrossAxisAlignment.stretch,
 
-              const Text(
-                'PulseUp',
-                style: TextStyle(
-                  fontSize: 34,
-                  fontWeight:
-                      FontWeight.bold,
+              children: [
+
+                Text(
+                  'PulseUp',
+                  textAlign: TextAlign.center,
+                  style:
+                      textTheme.headlineLarge,
                 ),
-              ),
 
-              const SizedBox(height: 40),
+                const SizedBox(
+                  height: AppSpacing.xl,
+                ),
 
-              TextField(
-                controller:
-                    emailController,
+                TextField(
+                  controller:
+                      _emailController,
 
-                keyboardType:
-                    TextInputType
-                        .emailAddress,
+                  keyboardType:
+                      TextInputType
+                          .emailAddress,
 
-                decoration:
-                    InputDecoration(
-                  labelText:
-                      'Correo electrónico',
+                  decoration:
+                      const InputDecoration(
+                    hintText:
+                        'Correo electrónico',
 
-                  prefixIcon:
-                      const Icon(
-                    Icons.email,
-                  ),
-
-                  border:
-                      OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(
-                      12,
+                    prefixIcon: Icon(
+                      Icons.email_outlined,
                     ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 16),
+                const SizedBox(
+                  height: AppSpacing.md,
+                ),
 
-              TextField(
-                controller:
-                    passwordController,
+                TextField(
+                  controller:
+                      _passwordController,
 
-                obscureText:
-                    _obscurePassword,
+                  obscureText:
+                      _obscurePassword,
 
-                decoration:
-                    InputDecoration(
-                  labelText:
-                      'Contraseña',
+                  decoration:
+                      InputDecoration(
+                    hintText:
+                        'Contraseña',
 
-                  prefixIcon:
-                      const Icon(
-                    Icons.lock,
-                  ),
-
-                  suffixIcon:
-                      IconButton(
-
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility
-                          : Icons.visibility_off,
+                    prefixIcon:
+                        const Icon(
+                      Icons.lock_outline,
                     ),
 
-                    onPressed: () {
+                    suffixIcon:
+                        IconButton(
 
-                      setState(() {
+                      onPressed: () {
 
-                        _obscurePassword =
-                            !_obscurePassword;
-                      });
-                    },
-                  ),
+                        setState(() {
 
-                  border:
-                      OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(
-                      12,
+                          _obscurePassword =
+                              !_obscurePassword;
+                        });
+                      },
+
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 24),
+                const SizedBox(
+                  height: AppSpacing.lg,
+                ),
 
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-
-                child: ElevatedButton(
+                ElevatedButton(
 
                   onPressed:
                       _isLoading
@@ -321,21 +303,24 @@ class _LoginScreenState
                           : _login,
 
                   child: _isLoading
-                      ? const CircularProgressIndicator()
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child:
+                              CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
                       : const Text(
                           'Iniciar Sesión',
                         ),
                 ),
-              ),
 
-              const SizedBox(height: 16),
+                const SizedBox(
+                  height: AppSpacing.md,
+                ),
 
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-
-                child:
-                    OutlinedButton.icon(
+                OutlinedButton.icon(
 
                   onPressed:
                       _isLoading
@@ -350,30 +335,32 @@ class _LoginScreenState
                     'Continuar con Google',
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 12),
-
-              TextButton(
-
-                onPressed: () {
-
-                  Navigator.push(
-
-                    context,
-
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          RegisterScreen(),
-                    ),
-                  );
-                },
-
-                child: const Text(
-                  '¿No tienes cuenta? Regístrate',
+                const SizedBox(
+                  height: AppSpacing.sm,
                 ),
-              ),
-            ],
+
+                TextButton(
+
+                  onPressed: () {
+
+                    Navigator.push(
+
+                      context,
+
+                      MaterialPageRoute(
+                        builder: (_) =>
+                             RegisterScreen(),
+                      ),
+                    );
+                  },
+
+                  child: const Text(
+                    '¿No tienes cuenta? Regístrate',
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -383,8 +370,8 @@ class _LoginScreenState
   @override
   void dispose() {
 
-    emailController.dispose();
-    passwordController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
 
     super.dispose();
   }

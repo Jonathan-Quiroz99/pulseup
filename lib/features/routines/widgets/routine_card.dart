@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_spacing.dart';
+
 import '../../../widgets/custom_card.dart';
 
 import '../models/workout_plan.dart';
+
 import 'exercise_tile.dart';
 
-class RoutineCard extends StatelessWidget {
+class RoutineCard
+    extends StatelessWidget {
+
   final WorkoutPlan routine;
 
   const RoutineCard({
@@ -15,57 +20,84 @@ class RoutineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final theme =
+        Theme.of(context);
+
+    final textTheme =
+        theme.textTheme;
+
     return CustomCard(
+
       child: Padding(
-        padding: const EdgeInsets.all(18),
+
+        padding: const EdgeInsets.all(
+          AppSpacing.md,
+        ),
 
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
 
           children: [
-            // HEADER
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
 
-                  decoration: BoxDecoration(
-                    color: const Color(0x2200FF88),
-                    borderRadius: BorderRadius.circular(12),
+            Row(
+
+              children: [
+
+                Container(
+
+                  padding: const EdgeInsets.all(
+                    AppSpacing.sm,
                   ),
 
-                  child: const Icon(
+                  decoration: BoxDecoration(
+
+                    color: theme
+                        .colorScheme.primary
+                        .withOpacity(0.12),
+
+                    borderRadius:
+                        BorderRadius.circular(
+                      AppSpacing.radiusMd,
+                    ),
+                  ),
+
+                  child: Icon(
                     Icons.fitness_center,
-                    color: Color(0xFF00FF88),
+                    color:
+                        theme.colorScheme.primary,
                   ),
                 ),
 
-                const SizedBox(width: 12),
+                const SizedBox(
+                  width: AppSpacing.sm,
+                ),
 
                 Expanded(
+
                   child: Column(
+
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
 
                     children: [
+
                       Text(
                         routine.name,
-
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                        style:
+                            textTheme.titleLarge,
                       ),
 
-                      const SizedBox(height: 4),
+                      const SizedBox(
+                        height: AppSpacing.xs,
+                      ),
 
                       Text(
                         routine.description,
-
-                        style: const TextStyle(
-                          color: Colors.white70,
-                        ),
+                        style:
+                            textTheme.bodyMedium,
                       ),
                     ],
                   ),
@@ -73,34 +105,46 @@ class RoutineCard extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 18),
+            const SizedBox(
+              height: AppSpacing.md,
+            ),
 
             Row(
+
               children: [
-                const Icon(
+
+                Icon(
                   Icons.person,
                   size: 18,
-                  color: Colors.white54,
+                  color:
+                      theme.colorScheme.onSurface
+                          .withOpacity(0.6),
                 ),
 
-                const SizedBox(width: 6),
+                const SizedBox(
+                  width: AppSpacing.xs,
+                ),
 
                 Text(
-                  "Coach: ${routine.trainer}",
-
-                  style: const TextStyle(
-                    color: Colors.white60,
-                  ),
+                  'Coach: ${routine.trainer}',
+                  style:
+                      textTheme.bodyMedium,
                 ),
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(
+              height: AppSpacing.lg,
+            ),
 
             ...routine.exercises.map(
-              (exercise) => ExerciseTile(
-                exercise: exercise,
-              ),
+
+              (exercise) {
+
+                return ExerciseTile(
+                  exercise: exercise,
+                );
+              },
             ),
           ],
         ),

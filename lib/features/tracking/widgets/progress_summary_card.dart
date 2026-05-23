@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
-class ProgressSummaryCard extends StatelessWidget {
+import '../../../core/theme/app_spacing.dart';
+
+class ProgressSummaryCard
+    extends StatelessWidget {
+
   final String title;
   final String value;
   final IconData icon;
@@ -14,49 +18,57 @@ class ProgressSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final theme =
+        Theme.of(context);
+
+    final textTheme =
+        theme.textTheme;
+
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
 
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
-          borderRadius:
-              BorderRadius.circular(18),
-        ),
+      child: Card(
 
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+        child: Padding(
 
-          children: [
-            Icon(
-              icon,
-              color: const Color(0xFF00FF88),
-            ),
+          padding: const EdgeInsets.all(
+            AppSpacing.md,
+          ),
 
-            const SizedBox(height: 12),
+          child: Column(
 
-            Text(
-              value,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
 
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+            children: [
+
+              Icon(
+                icon,
+                color:
+                    theme.colorScheme.primary,
               ),
-            ),
 
-            const SizedBox(height: 4),
-
-            Text(
-              title,
-
-              style: const TextStyle(
-                color: Colors.white60,
-                fontSize: 13,
+              const SizedBox(
+                height: AppSpacing.sm,
               ),
-            ),
-          ],
+
+              Text(
+                value,
+                style:
+                    textTheme.titleLarge,
+              ),
+
+              const SizedBox(
+                height: AppSpacing.xs,
+              ),
+
+              Text(
+                title,
+                style:
+                    textTheme.bodySmall,
+              ),
+            ],
+          ),
         ),
       ),
     );

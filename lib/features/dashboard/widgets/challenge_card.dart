@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_spacing.dart';
+
 class ChallengeCard
     extends StatelessWidget {
+
   final int checkins;
 
   const ChallengeCard({
@@ -11,55 +14,52 @@ class ChallengeCard
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
 
-      padding: const EdgeInsets.all(24),
+    final textTheme =
+        Theme.of(context).textTheme;
 
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+    return Card(
 
-        borderRadius:
-            BorderRadius.circular(24),
-      ),
+      child: Padding(
 
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(
+          AppSpacing.lg,
+        ),
 
-        children: [
-          const Text(
-            "Actividad semanal",
+        child: Column(
 
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: 16,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+
+          children: [
+
+            Text(
+              'Actividad semanal',
+              style:
+                  textTheme.bodyMedium,
             ),
-          ),
 
-          const SizedBox(height: 10),
-
-          Text(
-            "$checkins visitas",
-
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 30,
-              fontWeight:
-                  FontWeight.bold,
+            const SizedBox(
+              height: AppSpacing.sm,
             ),
-          ),
 
-          const SizedBox(height: 10),
-
-          const Text(
-            "Sigue manteniendo tu ritmo 🔥",
-
-            style: TextStyle(
-              color: Colors.white70,
+            Text(
+              '$checkins visitas',
+              style:
+                  textTheme.headlineMedium,
             ),
-          ),
-        ],
+
+            const SizedBox(
+              height: AppSpacing.sm,
+            ),
+
+            Text(
+              'Sigue manteniendo tu ritmo 🔥',
+              style:
+                  textTheme.bodyLarge,
+            ),
+          ],
+        ),
       ),
     );
   }

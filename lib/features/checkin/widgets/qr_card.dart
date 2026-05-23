@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-class QRCard extends StatelessWidget {
+import '../../../core/theme/app_spacing.dart';
+
+class QRCard
+    extends StatelessWidget {
+
   final String qrData;
 
   const QRCard({
@@ -11,38 +15,58 @@ class QRCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
 
-      padding: const EdgeInsets.all(24),
+    final textTheme =
+        Theme.of(context).textTheme;
 
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Card(
+
+      color: Colors.white,
+
+      shape: RoundedRectangleBorder(
 
         borderRadius:
-            BorderRadius.circular(28),
+            BorderRadius.circular(
+          AppSpacing.radiusXl,
+        ),
       ),
 
-      child: Column(
-        children: [
-          QrImageView(
-            data: qrData,
-            version: QrVersions.auto,
-            size: 260,
-          ),
+      child: Padding(
 
-          const SizedBox(height: 20),
+        padding: const EdgeInsets.all(
+          AppSpacing.xl,
+        ),
 
-          const Text(
-            "Escanea este código en recepción",
+        child: Column(
 
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: Colors.black,
+          children: [
+
+            QrImageView(
+              data: qrData,
+              version:
+                  QrVersions.auto,
+              size: 260,
             ),
-          ),
-        ],
+
+            const SizedBox(
+              height: AppSpacing.lg,
+            ),
+
+            Text(
+
+              'Escanea este código en recepción',
+
+              textAlign:
+                  TextAlign.center,
+
+              style: textTheme
+                  .titleMedium
+                  ?.copyWith(
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

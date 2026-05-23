@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/navigation/app_screen.dart';
+import '../../core/theme/app_spacing.dart';
 
 import '../auth/user_session.dart';
 
@@ -9,15 +10,16 @@ import 'models/dashboard_workout.dart';
 
 import 'services/dashboard_service.dart';
 
+import 'widgets/challenge_card.dart';
 import 'widgets/dashboard_header_card.dart';
 import 'widgets/dashboard_loading.dart';
-import 'widgets/workout_card.dart';
-import 'widgets/stats_row.dart';
 import 'widgets/quick_actions_grid.dart';
-import 'widgets/challenge_card.dart';
+import 'widgets/stats_row.dart';
+import 'widgets/workout_card.dart';
 
 class DashboardScreen
     extends StatefulWidget {
+
   final Function(AppScreen)
       onNavigate;
 
@@ -34,41 +36,50 @@ class DashboardScreen
 
 class _DashboardScreenState
     extends State<DashboardScreen> {
-  bool loading = false;
 
-  DashboardWorkout? workout;
+  final DashboardService
+      _dashboardService =
+          DashboardService();
 
-  DashboardStats? stats;
+  bool _loading = false;
 
-  int weeklyCheckins = 0;
+  DashboardWorkout? _workout;
+  DashboardStats? _stats;
+
+  int _weeklyCheckins = 0;
 
   @override
   void initState() {
+
     super.initState();
 
-    loadDashboard();
+    _loadDashboard();
   }
 
-  Future<void> loadDashboard() async {
+  Future<void>
+      _loadDashboard() async {
+
+    final token =
+        UserSession.token;
+
+    if (token == null) return;
+
     try {
+
       setState(() {
-        loading = true;
+        _loading = true;
       });
-
-      final token =
-          UserSession.token;
-
-      if (token == null) return;
 
       final results =
           await Future.wait([
-        DashboardService()
+
+        _dashboardService
             .fetchWorkout(token),
 
-        DashboardService()
+        _dashboardService
             .fetchStats(token),
 
-        DashboardService()
+        _dashboardService
             .fetchWeeklyCheckins(
               token,
             ),
@@ -77,92 +88,97 @@ class _DashboardScreenState
       if (!mounted) return;
 
       setState(() {
-        workout =
+
+        _workout =
             results[0]
                 as DashboardWorkout?;
 
-        stats =
+        _stats =
             results[1]
                 as DashboardStats?;
 
-        weeklyCheckins =
+        _weeklyCheckins =
             results[2] as int;
       });
+
     } catch (e) {
-      print(e);
+
+      debugPrint(
+        'Dashboard Error: $e',
+      );
+
+    } finally {
+
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+      });
     }
-
-    if (!mounted) return;
-
-    setState(() {
-      loading = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor:
-          const Color(0xFF0F172A),
 
-      body: loading
-          ? const DashboardLoading()
+    if (_loading) {
+      return const DashboardLoading();
+    }
 
-          : SafeArea(
-              child:
-                  SingleChildScrollView(
-                padding:
-                    const EdgeInsets.all(
-                  16,
-                ),
+    return SafeArea(
 
-                child: Column(
-                  children: [
-                    DashboardHeader(
-                      name:
-                          UserSession
-                              .fullName,
-                    ),
+      child: SingleChildScrollView(
 
-                    const SizedBox(
-                      height: 24,
-                    ),
+        padding: const EdgeInsets.all(
+          AppSpacing.md,
+        ),
 
-                    WorkoutCard(
-                      workout: workout,
-                      onNavigate:
-                          widget.onNavigate,
-                    ),
+        child: Column(
 
-                    const SizedBox(
-                      height: 20,
-                    ),
+          children: [
 
-                    StatsRow(
-                      stats: stats,
-                    ),
-
-                    const SizedBox(
-                      height: 20,
-                    ),
-
-                    QuickActionsGrid(
-                      onNavigate:
-                          widget.onNavigate,
-                    ),
-
-                    const SizedBox(
-                      height: 20,
-                    ),
-
-                    ChallengeCard(
-                      checkins:
-                          weeklyCheckins,
-                    ),
-                  ],
-                ),
-              ),
+            DashboardHeader(
+              name:
+                  UserSession.fullName,
             ),
+
+            const SizedBox(
+              height: AppSpacing.lg,
+            ),
+
+            WorkoutCard(
+              workout: _workout,
+              onNavigate:
+                  widget.onNavigate,
+            ),
+
+            const SizedBox(
+              height: AppSpacing.lg,
+            ),
+
+            StatsRow(
+              stats: _stats,
+            ),
+
+            const SizedBox(
+              height: AppSpacing.lg,
+            ),
+
+            QuickActionsGrid(
+              onNavigate:
+                  widget.onNavigate,
+            ),
+
+            const SizedBox(
+              height: AppSpacing.lg,
+            ),
+
+            ChallengeCard(
+              checkins:
+                  _weeklyCheckins,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

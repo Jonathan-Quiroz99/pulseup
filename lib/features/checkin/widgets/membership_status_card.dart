@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_spacing.dart';
+
 class MembershipStatusCard
     extends StatelessWidget {
+
   final String membership;
   final String status;
 
@@ -13,72 +16,83 @@ class MembershipStatusCard
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
 
-      padding: const EdgeInsets.all(20),
+    final theme =
+        Theme.of(context);
 
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+    final textTheme =
+        theme.textTheme;
 
-        borderRadius:
-            BorderRadius.circular(22),
-      ),
+    return Card(
 
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(14),
+      child: Padding(
 
-            decoration: BoxDecoration(
-              color:
-                  const Color(0x2200FF88),
+        padding: const EdgeInsets.all(
+          AppSpacing.lg,
+        ),
 
-              borderRadius:
-                  BorderRadius.circular(
-                18,
+        child: Row(
+
+          children: [
+
+            Container(
+
+              padding: const EdgeInsets.all(
+                AppSpacing.md,
+              ),
+
+              decoration: BoxDecoration(
+
+                color: theme
+                    .colorScheme.primary
+                    .withOpacity(0.12),
+
+                borderRadius:
+                    BorderRadius.circular(
+                  AppSpacing.radiusLg,
+                ),
+              ),
+
+              child: Icon(
+                Icons.workspace_premium,
+                color:
+                    theme.colorScheme.primary,
               ),
             ),
 
-            child: const Icon(
-              Icons.workspace_premium,
-              color: Color(0xFF00FF88),
+            const SizedBox(
+              width: AppSpacing.md,
             ),
-          ),
 
-          const SizedBox(width: 16),
+            Expanded(
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              child: Column(
 
-              children: [
-                Text(
-                  membership,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
 
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight:
-                        FontWeight.bold,
+                children: [
+
+                  Text(
+                    membership,
+                    style:
+                        textTheme.titleLarge,
                   ),
-                ),
 
-                const SizedBox(height: 4),
-
-                Text(
-                  status,
-
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
+                  const SizedBox(
+                    height: AppSpacing.xs,
                   ),
-                ),
-              ],
+
+                  Text(
+                    status,
+                    style:
+                        textTheme.bodyLarge,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

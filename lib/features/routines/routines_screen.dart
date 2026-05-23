@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_spacing.dart';
+
 import '../auth/user_session.dart';
 
 import 'models/workout_plan.dart';
@@ -7,90 +9,130 @@ import 'services/routines_service.dart';
 
 import 'widgets/routine_card.dart';
 
-class RoutinesScreen extends StatefulWidget {
-  const RoutinesScreen({super.key});
+class RoutinesScreen
+    extends StatefulWidget {
+
+  const RoutinesScreen({
+    super.key,
+  });
 
   @override
-  State<RoutinesScreen> createState() =>
-      _RoutinesScreenState();
+  State<RoutinesScreen>
+      createState() =>
+          _RoutinesScreenState();
 }
 
-class _RoutinesScreenState extends State<RoutinesScreen> {
-  bool loading = false;
+class _RoutinesScreenState
+    extends State<RoutinesScreen> {
 
-  List<WorkoutPlan> routines = [];
+  final RoutinesService
+      _routinesService =
+          RoutinesService();
+
+  bool _loading = false;
+
+  List<WorkoutPlan> _routines = [];
 
   @override
   void initState() {
+
     super.initState();
-    loadRoutines();
+
+    _loadRoutines();
   }
 
-  Future<void> loadRoutines() async {
-    setState(() {
-      loading = true;
-    });
+  Future<void>
+      _loadRoutines() async {
 
-    try {
-      final token = UserSession.token;
+    final token =
+        UserSession.token;
 
-      if (token == null || token.isEmpty) {
-        return;
-      }
+    if (token == null ||
+        token.isEmpty) {
 
-      final data = await RoutinesService()
-          .fetchMyWorkouts(token);
-
-      setState(() {
-        routines = data;
-      });
-    } catch (e) {
-      print(e);
+      return;
     }
 
-    setState(() {
-      loading = false;
-    });
+    try {
+
+      setState(() {
+        _loading = true;
+      });
+
+      final data =
+          await _routinesService
+              .fetchMyWorkouts(
+        token,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _routines = data;
+      });
+
+    } catch (e) {
+
+      debugPrint(
+        'Routines Error: $e',
+      );
+
+    } finally {
+
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
 
-      body: loading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
+    final textTheme =
+        Theme.of(context).textTheme;
 
-          : routines.isEmpty
-              ? const Center(
-                  child: Text(
-                    "No hay rutinas disponibles",
+    if (_loading) {
 
-                    style: TextStyle(
-                      color: Colors.white70,
-                    ),
-                  ),
-                )
+      return const Center(
+        child:
+            CircularProgressIndicator(),
+      );
+    }
 
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+    if (_routines.isEmpty) {
 
-                  itemCount: routines.length,
+      return Center(
 
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: 16,
-                      ),
+        child: Text(
+          'No hay rutinas disponibles',
+          style:
+              textTheme.bodyLarge,
+        ),
+      );
+    }
 
-                      child: RoutineCard(
-                        routine: routines[index],
-                      ),
-                    );
-                  },
-                ),
+    return ListView.separated(
+
+      padding: const EdgeInsets.all(
+        AppSpacing.md,
+      ),
+
+      itemCount: _routines.length,
+
+      separatorBuilder:
+          (_, __) => const SizedBox(
+        height: AppSpacing.md,
+      ),
+
+      itemBuilder: (context, index) {
+
+        return RoutineCard(
+          routine:
+              _routines[index],
+        );
+      },
     );
   }
 }

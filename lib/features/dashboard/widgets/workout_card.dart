@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/navigation/app_screen.dart';
+import '../../../core/theme/app_spacing.dart';
 
 import '../models/dashboard_workout.dart';
 
 class WorkoutCard
     extends StatelessWidget {
+
   final DashboardWorkout? workout;
 
-  final Function(AppScreen) onNavigate;
+  final Function(AppScreen)
+      onNavigate;
 
   const WorkoutCard({
     super.key,
@@ -18,112 +21,138 @@ class WorkoutCard
 
   @override
   Widget build(BuildContext context) {
+
+    final theme =
+        Theme.of(context);
+
+    final textTheme =
+        theme.textTheme;
+
     if (workout == null) {
-      return Container(
-        width: double.infinity,
 
-        padding:
-            const EdgeInsets.all(24),
+      return Card(
 
-        decoration: BoxDecoration(
-          color: const Color(
-            0xFF1E293B,
+        child: Padding(
+
+          padding: const EdgeInsets.all(
+            AppSpacing.lg,
           ),
 
-          borderRadius:
-              BorderRadius.circular(
-            24,
-          ),
-        ),
-
-        child: const Text(
-          "No hay rutina activa",
-
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 18,
+          child: Text(
+            'No hay rutina activa',
+            style:
+                textTheme.bodyLarge,
           ),
         ),
       );
     }
 
     return Container(
+
       width: double.infinity,
 
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(
+        AppSpacing.lg,
+      ),
 
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+
+        gradient: LinearGradient(
+
           colors: [
-            Color(0xFF00FF88),
-            Color(0xFF00C853),
+
+            theme.colorScheme.primary,
+
+            theme.colorScheme.secondary,
           ],
         ),
 
         borderRadius:
-            BorderRadius.circular(28),
+            BorderRadius.circular(
+          AppSpacing.radiusLg,
+        ),
       ),
 
       child: Column(
+
         crossAxisAlignment:
             CrossAxisAlignment.start,
 
         children: [
-          const Text(
-            "Entrenamiento Actual",
 
-            style: TextStyle(
+          Text(
+            'Entrenamiento Actual',
+
+            style:
+                textTheme.bodyMedium?.copyWith(
               color: Colors.black54,
-              fontSize: 16,
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(
+            height: AppSpacing.sm,
+          ),
 
           Text(
             workout!.name,
 
-            style: const TextStyle(
+            style: textTheme.headlineMedium
+                ?.copyWith(
               color: Colors.black,
-              fontSize: 28,
-              fontWeight:
-                  FontWeight.bold,
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(
+            height: AppSpacing.md,
+          ),
 
           Text(
-            "${workout!.exercises} ejercicios",
+            '${workout!.exercises} ejercicios',
 
-            style: const TextStyle(
+            style:
+                textTheme.bodyLarge?.copyWith(
               color: Colors.black87,
-              fontSize: 18,
             ),
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(
+            height: AppSpacing.xs,
+          ),
 
           Text(
-            "Coach ${workout!.trainer}",
+            'Coach ${workout!.trainer}',
 
-            style: const TextStyle(
+            style:
+                textTheme.bodyMedium?.copyWith(
               color: Colors.black87,
-              fontSize: 16,
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(
+            height: AppSpacing.lg,
+          ),
 
           ElevatedButton(
+
             onPressed: () {
+
               onNavigate(
                 AppScreen.routines,
               );
             },
 
+            style:
+                ElevatedButton.styleFrom(
+
+              backgroundColor:
+                  Colors.black,
+
+              foregroundColor:
+                  theme.colorScheme.primary,
+            ),
+
             child: const Text(
-              "Ver rutina",
+              'Ver rutina',
             ),
           ),
         ],

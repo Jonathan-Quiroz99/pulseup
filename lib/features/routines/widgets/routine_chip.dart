@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
-class RoutineChip extends StatelessWidget {
+import '../../../core/theme/app_spacing.dart';
+
+class RoutineChip
+    extends StatelessWidget {
+
   final IconData icon;
   final String text;
 
@@ -12,32 +16,54 @@ class RoutineChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final theme =
+        Theme.of(context);
+
+    final textTheme =
+        theme.textTheme;
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 8,
+
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
       ),
+
       decoration: BoxDecoration(
-        color: const Color(0xFF334155),
-        borderRadius: BorderRadius.circular(12),
+
+        color:
+            theme.colorScheme.surfaceVariant,
+
+        borderRadius:
+            BorderRadius.circular(
+          AppSpacing.radiusMd,
+        ),
       ),
+
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+
+        mainAxisSize:
+            MainAxisSize.min,
+
         children: [
+
           Icon(
             icon,
             size: 16,
-            color: const Color(0xFF00FF88),
+            color:
+                theme.colorScheme.primary,
           ),
 
-          const SizedBox(width: 6),
+          const SizedBox(
+            width: AppSpacing.xs,
+          ),
 
           Text(
             text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-            ),
+            style:
+                textTheme.bodySmall,
           ),
         ],
       ),

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_spacing.dart';
+
 import '../models/checkin_record.dart';
 
 class LatestCheckinCard
     extends StatelessWidget {
+
   final CheckinRecord checkin;
 
   const LatestCheckinCard({
@@ -13,57 +16,64 @@ class LatestCheckinCard
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
 
-      padding: const EdgeInsets.all(18),
+    final theme =
+        Theme.of(context);
 
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+    final textTheme =
+        theme.textTheme;
 
-        borderRadius:
-            BorderRadius.circular(20),
-      ),
+    return Card(
 
-      child: Row(
-        children: [
-          const Icon(
-            Icons.history,
-            color: Color(0xFF00FF88),
-          ),
+      child: Padding(
 
-          const SizedBox(width: 12),
+        padding: const EdgeInsets.all(
+          AppSpacing.md,
+        ),
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+        child: Row(
 
-              children: [
-                const Text(
-                  "Último acceso",
+          children: [
 
-                  style: TextStyle(
-                    color: Colors.white54,
-                  ),
-                ),
-
-                const SizedBox(height: 4),
-
-                Text(
-                  "${checkin.fecha} • ${checkin.hora}",
-
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
-                ),
-              ],
+            Icon(
+              Icons.history,
+              color:
+                  theme.colorScheme.primary,
             ),
-          ),
-        ],
+
+            const SizedBox(
+              width: AppSpacing.sm,
+            ),
+
+            Expanded(
+
+              child: Column(
+
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+
+                children: [
+
+                  Text(
+                    'Último acceso',
+                    style:
+                        textTheme.bodySmall,
+                  ),
+
+                  const SizedBox(
+                    height: AppSpacing.xs,
+                  ),
+
+                  Text(
+                    '${checkin.fecha} • ${checkin.hora}',
+                    style:
+                        textTheme.titleMedium,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

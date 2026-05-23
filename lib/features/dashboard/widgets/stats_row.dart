@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_spacing.dart';
+
 import '../models/dashboard_stats.dart';
 
-class StatsRow extends StatelessWidget {
+class StatsRow
+    extends StatelessWidget {
+
   final DashboardStats? stats;
 
   const StatsRow({
@@ -12,81 +16,93 @@ class StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return Row(
+
       children: [
-        _buildCard(
-          "Peso",
-          stats != null
-              ? "${stats!.weight}kg"
-              : "--",
+
+        _StatsCard(
+          title: 'Peso',
+          value: stats != null
+              ? '${stats!.weight}kg'
+              : '--',
         ),
 
-        const SizedBox(width: 12),
-
-        _buildCard(
-          "Grasa",
-          stats != null
-              ? "${stats!.bodyFat}%"
-              : "--",
+        const SizedBox(
+          width: AppSpacing.sm,
         ),
 
-        const SizedBox(width: 12),
+        _StatsCard(
+          title: 'Grasa',
+          value: stats != null
+              ? '${stats!.bodyFat}%'
+              : '--',
+        ),
 
-        _buildCard(
-          "Músculo",
-          stats != null
-              ? "${stats!.muscle}%"
-              : "--",
+        const SizedBox(
+          width: AppSpacing.sm,
+        ),
+
+        _StatsCard(
+          title: 'Músculo',
+          value: stats != null
+              ? '${stats!.muscle}%'
+              : '--',
         ),
       ],
     );
   }
+}
 
-  Widget _buildCard(
-    String title,
-    String value,
-  ) {
+class _StatsCard
+    extends StatelessWidget {
+
+  final String title;
+  final String value;
+
+  const _StatsCard({
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+
+    final textTheme =
+        Theme.of(context).textTheme;
+
     return Expanded(
-      child: Container(
-        padding:
-            const EdgeInsets.symmetric(
-          vertical: 20,
-        ),
 
-        decoration: BoxDecoration(
-          color: const Color(
-            0xFF1E293B,
+      child: Card(
+
+        child: Padding(
+
+          padding:
+              const EdgeInsets.symmetric(
+            vertical: AppSpacing.lg,
           ),
 
-          borderRadius:
-              BorderRadius.circular(
-            20,
+          child: Column(
+
+            children: [
+
+              Text(
+                value,
+                style:
+                    textTheme.titleLarge,
+              ),
+
+              const SizedBox(
+                height: AppSpacing.xs,
+              ),
+
+              Text(
+                title,
+                style:
+                    textTheme.bodyMedium,
+              ),
+            ],
           ),
-        ),
-
-        child: Column(
-          children: [
-            Text(
-              value,
-
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 6),
-
-            Text(
-              title,
-
-              style: const TextStyle(
-                color: Colors.white54,
-              ),
-            ),
-          ],
         ),
       ),
     );
