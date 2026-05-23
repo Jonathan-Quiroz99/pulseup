@@ -30,8 +30,7 @@ class _LoginScreenState
 
   final GoogleSignIn _googleSignIn =
       GoogleSignIn(
-    serverClientId:
-        '118869026911-7o2emhtca6vqlftlf30do7kcdp6vhqtb.apps.googleusercontent.com',
+    scopes: ['email'],
   );
 
   bool _isLoading = false;
@@ -92,62 +91,86 @@ class _LoginScreenState
 
   Future<void> _googleLogin() async {
 
-    try {
+  try {
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    print('STEP 1');
+
+    await _googleSignIn.signOut();
+
+    print('STEP 2');
+
+    final googleUser =
+        await _googleSignIn.signIn();
+
+    print('STEP 3');
+
+    if (googleUser == null) {
+
+      print('GOOGLE USER NULL');
+      return;
+    }
+
+    print('EMAIL: ${googleUser.email}');
+
+    final googleAuth =
+        await googleUser.authentication;
+
+    print('STEP 4');
+
+    print('ACCESS TOKEN: ${googleAuth.accessToken}');
+    print('ID TOKEN: ${googleAuth.idToken}');
+
+    final idToken =
+        googleAuth.idToken;
+
+    if (idToken == null ||
+        idToken.isEmpty) {
+
+      throw Exception(
+        'Google no devolvió ID Token',
+      );
+    }
+
+    print('STEP 5');
+
+    final response =
+        await _apiService.googleLogin(
+      idToken,
+    );
+
+    print('STEP 6');
+    print(response);
+
+    _saveSession(response);
+
+    if (!mounted) return;
+
+    _navigateToHome();
+
+  } catch (e, stack) {
+
+    print('GOOGLE LOGIN ERROR');
+    print(e);
+    print(stack);
+
+    _showError(
+      'Google Login Error\n$e',
+    );
+
+  } finally {
+
+    if (mounted) {
 
       setState(() {
-        _isLoading = true;
+        _isLoading = false;
       });
-
-      await _googleSignIn.signOut();
-
-      final googleUser =
-          await _googleSignIn.signIn();
-
-      if (googleUser == null) {
-        return;
-      }
-
-      final googleAuth =
-          await googleUser.authentication;
-
-      final idToken =
-          googleAuth.idToken;
-
-      if (idToken == null ||
-          idToken.isEmpty) {
-
-        throw Exception(
-          'Google no devolvió ID Token',
-        );
-      }
-
-      final response =
-          await _apiService.googleLogin(
-        idToken,
-      );
-
-      _saveSession(response);
-
-      if (!mounted) return;
-
-      _navigateToHome();
-
-    } catch (e) {
-
-      _showError(
-        'Google Login Error\n$e',
-      );
-
-    } finally {
-
-      if (mounted) {
-
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
+}
 
   void _navigateToHome() {
 

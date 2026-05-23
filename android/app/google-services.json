@@ -7,17 +7,17 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:118869026911:android:1c9fec006065f97fcf53ea",
+        "mobilesdk_app_id": "1:118869026911:android:7dfd5390d6e2c997cf53ea",
         "android_client_info": {
-          "package_name": "com.example.pulseup"
+          "package_name": "com.pulseup.app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "118869026911-u1mj1d1299hq6lo9qnc7vvkk7t0vc5eg.apps.googleusercontent.com",
+          "client_id": "118869026911-nks1bk1bbpfm1mm51t8qs9pc7itdgier.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example.pulseup",
+            "package_name": "com.pulseup.app",
             "certificate_hash": "b901a3420d23273aa6a33a2f6b472518071dda1d"
           }
         },
