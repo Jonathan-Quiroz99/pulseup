@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../widgets/custom_card.dart';
 
 class TrackingScreen extends StatefulWidget {
+  const TrackingScreen({super.key});
+
   @override
   _TrackingScreenState createState() => _TrackingScreenState();
 }

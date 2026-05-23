@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../../widgets/custom_card.dart';
 
 class RoutinesScreen extends StatelessWidget {
-  final List<String> routines = [
+  static const List<String> routines = [
     "Pecho + Tríceps",
     "Espalda + Bíceps",
     "Pierna completa",
   ];
+
+  const RoutinesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

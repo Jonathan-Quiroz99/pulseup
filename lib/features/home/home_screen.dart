@@ -4,6 +4,8 @@ import '../tracking/tracking_screen.dart';
 import '../checkin/checkin_screen.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
