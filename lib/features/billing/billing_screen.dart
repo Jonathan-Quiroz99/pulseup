@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 
 import '../../widgets/custom_card.dart';
+
+
 
 class BillingScreen
     extends StatefulWidget {
@@ -46,14 +49,7 @@ class _BillingScreenState
 
           CustomCard(
 
-            gradient:
-                const LinearGradient(
-
-              colors: [
-                Color(0xFF00FF88),
-                Color(0xFF00C853),
-              ],
-            ),
+            gradient: AppColors.gradient,
 
             child: Column(
 

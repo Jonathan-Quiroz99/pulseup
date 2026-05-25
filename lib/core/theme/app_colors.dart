@@ -9,19 +9,28 @@ class AppColors {
   static const card = Color(0xFF1E1E1E);
 
   // Brand
-  static const primary = Color(0xFF00E676);
-  static const primaryDark = Color(0xFF00C853);
+  static const primary = Color(0xFFFF7A00);
+  static const primaryDark = Color(0xFFE56700);
+
+  static const gradient = LinearGradient(
+    colors: [
+      Color(0xFFFF7A00),
+      Color(0xFFE56700),
+    ],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
   // Text
   static const textPrimary = Colors.white;
-  static const textSecondary = Color(0xFFB3B3B3);
-  static const textMuted = Color(0xFF7A7A7A);
+  static const textSecondary = Color(0xFFBDBDBD);
+  static const textMuted = Color(0xFF8A8A8A);
 
   // Borders
   static const border = Color(0xFF2B2B2B);
 
   // Status
-  static const success = Color(0xFF00E676);
+  static const success = Color(0xFF22C55E);
   static const warning = Color(0xFFFFB300);
   static const error = Color(0xFFFF5252);
 
