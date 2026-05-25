@@ -10,10 +10,14 @@ import '../billing/billing_screen.dart';
 import '../checkin/checkin_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../routines/routines_screen.dart';
+import '../store/store_screen.dart';
 import '../tracking/tracking_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+
+  const HomeScreen({
+    super.key,
+  });
 
   @override
   State<HomeScreen> createState() =>
@@ -26,41 +30,73 @@ class _HomeScreenState
   AppScreen _currentScreen =
       AppScreen.dashboard;
 
-  late final Map<AppScreen, Widget>
-      _screens = {
-
-    AppScreen.dashboard:
-        DashboardScreen(
-      onNavigate: _changeTab,
-    ),
-
-    AppScreen.routines:
-        const RoutinesScreen(),
-
-    AppScreen.tracking:
-        const TrackingScreen(),
-
-    AppScreen.checkin:
-        const CheckinScreen(),
-
-    AppScreen.billing:
-        const BillingScreen(),
-  };
-
   void _changeTab(
     AppScreen screen,
   ) {
+
+    if (_currentScreen == screen) {
+      return;
+    }
 
     setState(() {
       _currentScreen = screen;
     });
   }
 
-  int _getNavIndex() {
+  int _getBottomNavIndex() {
 
-    return AppScreen.values.indexOf(
-      _currentScreen,
-    );
+    switch (_currentScreen) {
+
+      case AppScreen.routines:
+        return 0;
+
+      case AppScreen.tracking:
+        return 1;
+
+      case AppScreen.dashboard:
+        return 2;
+
+      case AppScreen.store:
+        return 3;
+
+      case AppScreen.checkin:
+        return 4;
+
+      case AppScreen.billing:
+        return 2;
+    }
+  }
+
+  Widget _buildScreen() {
+
+    switch (_currentScreen) {
+
+      case AppScreen.dashboard:
+
+        return DashboardScreen(
+          onNavigate: _changeTab,
+        );
+
+      case AppScreen.routines:
+
+        return const RoutinesScreen();
+
+      case AppScreen.tracking:
+
+        return const TrackingScreen();
+
+      case AppScreen.store:
+
+        return const StoreScreen();
+
+      case AppScreen.checkin:
+
+        return const CheckinScreen();
+
+      case AppScreen.billing:
+
+        return const BillingScreen();
+    }
   }
 
   PreferredSizeWidget _buildAppBar(
@@ -105,7 +141,9 @@ class _HomeScreenState
           actions: [
 
             IconButton(
+
               onPressed: () {},
+
               icon: const Icon(
                 Icons.notifications_none,
               ),
@@ -118,25 +156,53 @@ class _HomeScreenState
       case AppScreen.routines:
 
         return AppBar(
+
           title: const Text(
             'Rutinas',
           ),
+
+          actions: [
+            _drawerButton(),
+          ],
         );
 
       case AppScreen.tracking:
 
         return AppBar(
+
           title: const Text(
             'Progreso',
           ),
+
+          actions: [
+            _drawerButton(),
+          ],
+        );
+
+      case AppScreen.store:
+
+        return AppBar(
+
+          title: const Text(
+            'Tienda',
+          ),
+
+          actions: [
+            _drawerButton(),
+          ],
         );
 
       case AppScreen.checkin:
 
         return AppBar(
+
           title: const Text(
             'Check-In',
           ),
+
+          actions: [
+            _drawerButton(),
+          ],
         );
 
       case AppScreen.billing:
@@ -180,9 +246,48 @@ class _HomeScreenState
     int index,
   ) {
 
-    _changeTab(
-      AppScreen.values[index],
-    );
+    switch (index) {
+
+      case 0:
+
+        _changeTab(
+          AppScreen.routines,
+        );
+
+        break;
+
+      case 1:
+
+        _changeTab(
+          AppScreen.tracking,
+        );
+
+        break;
+
+      case 2:
+
+        _changeTab(
+          AppScreen.dashboard,
+        );
+
+        break;
+
+      case 3:
+
+        _changeTab(
+          AppScreen.store,
+        );
+
+        break;
+
+      case 4:
+
+        _changeTab(
+          AppScreen.checkin,
+        );
+
+        break;
+    }
   }
 
   @override
@@ -213,52 +318,65 @@ class _HomeScreenState
         ),
 
         body:
-            _screens[_currentScreen],
+            _buildScreen(),
 
         bottomNavigationBar:
             BottomNavigationBar(
 
           currentIndex:
-              _getNavIndex(),
+              _getBottomNavIndex(),
 
           onTap:
               _onBottomNavTap,
 
+          type:
+              BottomNavigationBarType.fixed,
+
           items: const [
 
             BottomNavigationBarItem(
-              icon: Icon(
-                Icons.dashboard,
-              ),
-              label: 'Inicio',
-            ),
 
-            BottomNavigationBarItem(
               icon: Icon(
                 Icons.fitness_center,
               ),
+
               label: 'Rutinas',
             ),
 
             BottomNavigationBarItem(
+
               icon: Icon(
                 Icons.show_chart,
               ),
+
               label: 'Progreso',
             ),
 
             BottomNavigationBarItem(
+
               icon: Icon(
-                Icons.qr_code,
+                Icons.home,
               ),
-              label: 'Check-In',
+
+              label: 'Inicio',
             ),
 
             BottomNavigationBarItem(
+
               icon: Icon(
-                Icons.credit_card,
+                Icons.storefront,
               ),
-              label: 'Cuenta',
+
+              label: 'Tienda',
+            ),
+
+            BottomNavigationBarItem(
+
+              icon: Icon(
+                Icons.qr_code,
+              ),
+
+              label: 'Check-In',
             ),
           ],
         ),

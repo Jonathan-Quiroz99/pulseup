@@ -136,9 +136,27 @@ class AppDrawer
 
             context: context,
 
+            icon: Icons.storefront,
+
+            title: 'Tienda',
+
+            onTap: () {
+
+              Navigator.pop(context);
+
+              onNavigate(
+                AppScreen.store,
+              );
+            },
+          ),
+
+          _drawerItem(
+
+            context: context,
+
             icon: Icons.qr_code,
 
-            title: 'Check-in',
+            title: 'Check-In',
 
             onTap: () {
 
@@ -194,7 +212,10 @@ class AppDrawer
 
             title: 'Configuración',
 
-            onTap: () {},
+            onTap: () {
+
+              Navigator.pop(context);
+            },
           ),
 
           _drawerItem(
@@ -205,7 +226,13 @@ class AppDrawer
 
             title: 'Cerrar sesión',
 
-            onTap: () {},
+            onTap: () {
+
+              Navigator.pop(context);
+
+              // TODO:
+              // Implementar logout
+            },
           ),
         ],
       ),
