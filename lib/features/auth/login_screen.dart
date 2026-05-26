@@ -5,8 +5,11 @@ import '../../core/theme/app_spacing.dart';
 import '../../services/api_service.dart';
 
 import '../home/home_screen.dart';
-import 'register_screen.dart';
+//import 'register/register_screen.dart';
 import 'user_session.dart';
+
+import 'register/register_step1_screen.dart';
+import 'register/models/register_models.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -142,8 +145,46 @@ class _LoginScreenState
       idToken,
     );
 
-    print('STEP 6');
     print(response);
+
+    if (response['requiresRegistration'] == true) {
+
+      if (!mounted) return;
+
+      Navigator.push(
+
+        context,
+
+        MaterialPageRoute(
+
+          builder: (_) =>
+              RegisterStep1Screen(
+
+            initialData: RegisterData(
+
+              nombre:
+                  response['googleData']['nombre'] ?? '',
+
+              apellidos:
+                  response['googleData']['apellidos'] ?? '',
+
+              correo:
+                  response['googleData']['correo'] ?? '',
+
+              telefono: '',
+
+              fechaNacimiento: '',
+
+              isGoogle: true,
+
+              googleCredential: idToken,
+            ),
+          ),
+        ),
+      );
+
+      return;
+    }
 
     _saveSession(
       response,
@@ -379,7 +420,16 @@ class _LoginScreenState
 
                       MaterialPageRoute(
                         builder: (_) =>
-                             RegisterScreen(),
+                          RegisterStep1Screen(
+                            initialData: RegisterData(
+                              nombre: '',
+                              apellidos: '',
+                              correo: '',
+                              telefono: '',
+                              fechaNacimiento: '',
+                              isGoogle: false,
+                            ),
+                          ),
                       ),
                     );
                   },

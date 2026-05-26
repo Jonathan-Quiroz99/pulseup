@@ -19,38 +19,77 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> registerMember({
-    required String nombre,
-    required String correo,
-    required String password,
-  }) async {
 
-    final response = await http.post(
-      Uri.parse('$_baseUrl/mobile/auth/register'),
+  required String nombre,
+  required String apellidos,
+  required String correo,
+  required String telefono,
+  required String fechaNacimiento,
+  required String membresia,
+  required String password,
 
-      headers: {
-        'Content-Type': 'application/json',
-      },
+}) async {
 
-      body: jsonEncode({
-        'nombre': nombre,
-        'correo': correo,
-        'password': password,
-      }),
-    );
+  final response = await http.post(
 
-    print('REGISTER STATUS: ${response.statusCode}');
-    print('REGISTER BODY: ${response.body}');
+    Uri.parse(
+      '$_baseUrl/mobile/auth/register',
+    ),
 
-    if (response.statusCode == 200 ||
-        response.statusCode == 201) {
+    headers: {
+      'Content-Type': 'application/json',
+    },
 
-      return jsonDecode(response.body);
+    body: jsonEncode({
 
-    } else {
+      'nombre': nombre,
 
-      throw Exception(response.body);
+      'apellidos': apellidos,
+
+      'correo': correo,
+
+      'telefono': telefono,
+
+      'fechaNacimiento': fechaNacimiento,
+
+      'membresia': membresia,
+
+      'password': password,
+    }),
+  );
+
+  print(
+    'REGISTER STATUS: ${response.statusCode}',
+  );
+
+  print(
+    'REGISTER BODY: ${response.body}',
+  );
+
+  final data = jsonDecode(response.body);
+
+  if (
+      response.statusCode == 200 ||
+      response.statusCode == 201
+  ) {
+
+    if (data['token'] != null) {
+
+      _token = data['token'];
     }
+
+    return data;
+
+  } else {
+
+    throw Exception(
+
+      data['detail'] ??
+      data['message'] ??
+      response.body,
+    );
   }
+}
   
   // 1. Login de miembros (para tu app móvil)
   Future<Map<String, dynamic>> memberLogin(
