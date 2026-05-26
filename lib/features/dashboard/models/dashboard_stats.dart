@@ -1,11 +1,11 @@
 class DashboardStats {
   final double weight;
-  final double bodyFat;
-  final double muscle;
+  final double? bodyFat;  // Cambiado a opcional
+  final double? muscle;   // Cambiado a opcional
 
   DashboardStats({
     required this.weight,
-    required this.bodyFat,
-    required this.muscle,
+    this.bodyFat,
+    this.muscle,
   });
 }

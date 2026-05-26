@@ -2,15 +2,15 @@ class BodyMeasurement {
   final String id;
   final String memberId;
   final String date;
-
   final double weightKg;
-  final double bodyFat;
-  final double muscle;
-
+  final double? bodyFat;
+  final double? muscle;
   final double waist;
+  final double? hip;
   final double chest;
   final double arm;
-
+  final double? heightCm;
+  final double? imc;
   final String notes;
 
   BodyMeasurement({
@@ -18,41 +18,32 @@ class BodyMeasurement {
     required this.memberId,
     required this.date,
     required this.weightKg,
-    required this.bodyFat,
-    required this.muscle,
+    this.bodyFat,
+    this.muscle,
     required this.waist,
+    this.hip,
     required this.chest,
     required this.arm,
+    this.heightCm,
+    this.imc,
     required this.notes,
   });
 
-  factory BodyMeasurement.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory BodyMeasurement.fromJson(Map<String, dynamic> json) {
     return BodyMeasurement(
-      id: json['id'],
-      memberId: json['member_id'],
-      date: json['fecha'],
-
-      weightKg:
-          (json['peso_kg'] ?? 0).toDouble(),
-
-      bodyFat:
-          (json['grasa_pct'] ?? 0).toDouble(),
-
-      muscle:
-          (json['musculo_pct'] ?? 0).toDouble(),
-
-      waist:
-          (json['cintura_cm'] ?? 0).toDouble(),
-
-      chest:
-          (json['pecho_cm'] ?? 0).toDouble(),
-
-      arm:
-          (json['brazo_cm'] ?? 0).toDouble(),
-
-      notes: json['notas'] ?? '',
+      id: json['id']?.toString() ?? '',
+      memberId: json['member_id']?.toString() ?? '',
+      date: json['fecha']?.toString() ?? '',
+      weightKg: (json['peso_kg'] ?? 0).toDouble(),
+      bodyFat: json['grasa_pct'] != null ? (json['grasa_pct'] as num).toDouble() : null,
+      muscle: json['musculo_pct'] != null ? (json['musculo_pct'] as num).toDouble() : null,
+      waist: (json['cintura_cm'] ?? 0).toDouble(),
+      hip: json['cadera_cm'] != null ? (json['cadera_cm'] as num).toDouble() : null,
+      chest: (json['pecho_cm'] ?? 0).toDouble(),
+      arm: (json['brazo_cm'] ?? 0).toDouble(),
+      heightCm: json['altura_cm'] != null ? (json['altura_cm'] as num).toDouble() : null,
+      imc: json['imc'] != null ? (json['imc'] as num).toDouble() : null,
+      notes: json['notas']?.toString() ?? '',
     );
   }
 }
