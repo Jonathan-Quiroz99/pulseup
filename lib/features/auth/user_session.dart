@@ -92,7 +92,8 @@ class UserSession {
     role = data["role"];
 
     profileImage =
-        data["profile_image"];
+        data["profile_image"] ??
+        data["picture"];
   }
 
   // CLEAR SESSION

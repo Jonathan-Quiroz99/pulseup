@@ -145,7 +145,10 @@ class _LoginScreenState
     print('STEP 6');
     print(response);
 
-    _saveSession(response);
+    _saveSession(
+      response,
+      googleUser: googleUser,
+    );
 
     if (!mounted) return;
 
@@ -184,27 +187,30 @@ class _LoginScreenState
   }
 
   void _saveSession(
-    Map<String, dynamic> response,
-  ) {
+      Map<String, dynamic> response, {
+      GoogleSignInAccount? googleUser,
+    }) {
 
-    UserSession.currentUser = {
+      UserSession.setSession({
 
-      'member_id':
-          response['member_id'],
+        ...response,
 
-      'correo':
-          response['correo'],
+        "picture":
+            googleUser?.photoUrl,
+      });
 
-      'nombre':
-          response['nombre'],
+      if (UserSession.profileImage != null) {
 
-      'role':
-          response['role'],
-    };
+        precacheImage(
 
-    UserSession.token =
-        response['token'];
-  }
+          NetworkImage(
+            UserSession.profileImage!,
+          ),
+
+          context,
+        );
+      }
+    }
 
   void _showError(String message) {
 
