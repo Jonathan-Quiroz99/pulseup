@@ -46,6 +46,8 @@ class TrackingService {
     if (hip != null) requestBody["cadera_cm"] = hip;
     if (heightCm != null) requestBody["altura_cm"] = heightCm;
     
+    print('Enviando medición: $requestBody'); // Debug
+    
     final response = await http.post(
       Uri.parse("$baseUrl/api/mobile/me/measurements"),
       headers: {
@@ -55,14 +57,51 @@ class TrackingService {
       body: jsonEncode(requestBody),
     );
 
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception("Failed to add measurement: ${response.statusCode}");
     }
   }
   
-  // Método para obtener la altura del usuario
+  // Guardar altura del usuario en el backend
+  Future<void> saveUserHeight(String token, double heightCm) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/api/mobile/me/height"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "altura_cm": heightCm,
+      }),
+    );
+    
+    print('Save height response: ${response.statusCode}');
+    
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception("Failed to save height");
+    }
+  }
+  
+  // Obtener altura del usuario
   Future<double?> getUserHeight(String token) async {
-    // Por ahora retorna null, implementa según tu API
+    try {
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/mobile/me/height"),
+        headers: {
+          "Authorization": "Bearer $token",
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return (data['altura_cm'] as num?)?.toDouble();
+      }
+    } catch (e) {
+      print('Error getting height: $e');
+    }
     return null;
   }
 }

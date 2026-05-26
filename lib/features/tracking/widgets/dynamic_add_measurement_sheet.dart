@@ -9,6 +9,7 @@ class DynamicAddMeasurementSheet extends StatefulWidget {
   final TextEditingController notesController;
   final VoidCallback onSave;
   final double? existingHeight; // Altura existente del usuario
+  final Function(double)? onSaveHeight; // Callback para guardar altura si se ingresa
 
   const DynamicAddMeasurementSheet({
     super.key,
@@ -19,6 +20,7 @@ class DynamicAddMeasurementSheet extends StatefulWidget {
     required this.notesController,
     required this.onSave,
     this.existingHeight,
+    this.onSaveHeight,
   });
 
   @override
@@ -106,8 +108,13 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
   
   void _save() {
     if (_formKey.currentState!.validate()) {
-      // Actualizar los controladores con los valores calculados si es necesario
-      // Esto permite que el TrackingScreen use los valores calculados
+      // Si hay altura nueva y no existía antes, guardarla
+      if (widget.existingHeight == null && _heightController.text.isNotEmpty) {
+        final newHeight = double.parse(_heightController.text);
+        if (widget.onSaveHeight != null) {
+          widget.onSaveHeight!(newHeight);
+        }
+      }
       widget.onSave();
     }
   }

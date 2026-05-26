@@ -89,61 +89,101 @@ class _TrackingScreenState extends State<TrackingScreen> {
   }
 
   Future<void> _saveMeasurement() async {
-    try {
-      final token = UserSession.token;
-      if (token == null) return;
-      
-      final weight = double.parse(_weightController.text);
-      final waist = double.parse(_waistController.text);
-      final chest = double.parse(_chestController.text);
-      final arm = double.parse(_armController.text);
-      
-      double? bodyFat;
-      double? muscle;
-      
-      if (_userHeight != null) {
-        bodyFat = BodyCalculationsService.calculateBodyFat(
-          weightKg: weight,
-          waistCm: waist,
-          heightCm: _userHeight!,
-          gender: _userGender,
-        );
-        
-        muscle = BodyCalculationsService.calculateMusclePercentage(
-          weightKg: weight,
-          bodyFatPercentage: bodyFat,
-        );
-      }
-      
-      await _trackingService.addMeasurement(
-        token: token,
+  try {
+    final token = UserSession.token;
+    if (token == null) return;
+    
+    final weight = double.parse(_weightController.text);
+    final waist = double.parse(_waistController.text);
+    final chest = double.parse(_chestController.text);
+    final arm = double.parse(_armController.text);
+    
+    double? bodyFat;
+    double? muscle;
+    
+    // Si tenemos altura, calcular grasa y músculo
+    if (_userHeight != null) {
+      bodyFat = BodyCalculationsService.calculateBodyFat(
         weightKg: weight,
-        bodyFat: bodyFat,
-        muscle: muscle,
-        waist: waist,
-        chest: chest,
-        arm: arm,
-        heightCm: _userHeight,
-        notes: _notesController.text,
+        waistCm: waist,
+        heightCm: _userHeight!,
+        gender: _userGender,
       );
-
-      _clearFields();
-      if (!mounted) return;
-      Navigator.pop(context);
-      _loadMeasurements();
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Medición guardada exitosamente')),
+      muscle = BodyCalculationsService.calculateMusclePercentage(
+        weightKg: weight,
+        bodyFatPercentage: bodyFat,
       );
-    } catch (e) {
-      debugPrint('Save Measurement Error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: $e')),
-        );
-      }
+      
+      print('Cálculos - Peso: $weight, Cintura: $waist, Altura: $_userHeight');
+      print('Grasa calculada: $bodyFat%, Músculo: $muscle%');
+    } else {
+      print('No hay altura disponible, no se calculan métricas');
+    }
+    
+    await _trackingService.addMeasurement(
+      token: token,
+      weightKg: weight,
+      bodyFat: bodyFat,
+      muscle: muscle,
+      waist: waist,
+      chest: chest,
+      arm: arm,
+      heightCm: _userHeight, // Enviar altura para que la BD calcule IMC
+      notes: _notesController.text,
+    );
+
+    _clearFields();
+    if (!mounted) return;
+    Navigator.pop(context);
+    _loadMeasurements();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Medición guardada exitosamente')),
+    );
+  } catch (e) {
+    debugPrint('Save Measurement Error: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al guardar: $e')),
+      );
     }
   }
+}
+
+Future<void> _saveUserHeight(double height) async {
+  final token = UserSession.token;
+  if (token == null) return;
+  
+  try {
+    await _trackingService.saveUserHeight(token, height);
+    setState(() {
+      _userHeight = height;
+    });
+    print('Altura guardada: $height cm');
+  } catch (e) {
+    print('Error guardando altura: $e');
+  }
+}
+
+void _openAddMeasurementSheet() {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) {
+      return DynamicAddMeasurementSheet(
+        weightController: _weightController,
+        waistController: _waistController,
+        chestController: _chestController,
+        armController: _armController,
+        notesController: _notesController,
+        existingHeight: _userHeight,
+        onSave: _saveMeasurement,
+      );
+    },
+  );
+}
 
   void _clearFields() {
     _weightController.clear();
@@ -153,24 +193,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
     _notesController.clear();
   }
 
-  void _openAddMeasurementSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) {
-        return DynamicAddMeasurementSheet(
-          weightController: _weightController,
-          waistController: _waistController,
-          chestController: _chestController,
-          armController: _armController,
-          notesController: _notesController,
-          existingHeight: _userHeight,
-          onSave: _saveMeasurement,
-        );
-      },
-    );
-  }
+  
 
   @override
   Widget build(BuildContext context) {

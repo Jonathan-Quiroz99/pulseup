@@ -30,6 +30,8 @@ class BodyMeasurement {
   });
 
   factory BodyMeasurement.fromJson(Map<String, dynamic> json) {
+    print('Parsing measurement: $json'); // Debug
+    
     return BodyMeasurement(
       id: json['id']?.toString() ?? '',
       memberId: json['member_id']?.toString() ?? '',
@@ -42,7 +44,7 @@ class BodyMeasurement {
       chest: (json['pecho_cm'] ?? 0).toDouble(),
       arm: (json['brazo_cm'] ?? 0).toDouble(),
       heightCm: json['altura_cm'] != null ? (json['altura_cm'] as num).toDouble() : null,
-      imc: json['imc'] != null ? (json['imc'] as num).toDouble() : null,
+      imc: json['imc'] != null ? (json['imc'] as num).toDouble() : null, // IMC calculado por BD
       notes: json['notas']?.toString() ?? '',
     );
   }
