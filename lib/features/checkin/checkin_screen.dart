@@ -107,7 +107,7 @@ class _CheckinScreenState
 
     final membership =
         UserSession.membership ??
-            'Premium';
+            'Mensual';
 
     final membershipStatus =
         UserSession
