@@ -56,7 +56,7 @@ class AppDrawer
 
             accountEmail: Text(
 
-              'Membresía Activa',
+              '${UserSession.membership ?? 'Membresía'} • ${UserSession.membershipStatus ?? 'Activa'}',
 
               style: textTheme.bodyMedium
                   ?.copyWith(
@@ -65,17 +65,32 @@ class AppDrawer
               ),
             ),
 
+            currentAccountPictureSize:
+                const Size(72, 72),
+                
             currentAccountPicture:
                 CircleAvatar(
 
               backgroundColor:
                   theme.colorScheme.primary,
 
-              child: Icon(
-                Icons.person,
-                color: theme
-                    .colorScheme.onPrimary,
-              ),
+              backgroundImage:
+                  UserSession.profileImage != null
+                      ? NetworkImage(
+                          UserSession.profileImage!,
+                        )
+                      : null,
+
+              child:
+                  UserSession.profileImage == null
+
+                      ? Icon(
+                          Icons.person,
+                          color: theme
+                              .colorScheme.onPrimary,
+                        )
+
+                      : null,
             ),
           ),
 
