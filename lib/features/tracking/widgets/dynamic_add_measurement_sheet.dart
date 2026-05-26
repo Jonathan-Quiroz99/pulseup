@@ -122,9 +122,11 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
       ),
       child: DraggableScrollableSheet(
         initialChildSize: 0.9,

@@ -1,24 +1,20 @@
 import 'package:flutter/material.dart';
 
-class TrackingEmptyState
-    extends StatelessWidget {
+import '../../../core/theme/app_colors.dart';
 
-  const TrackingEmptyState({
-    super.key,
-  });
+class TrackingEmptyState extends StatelessWidget {
+  const TrackingEmptyState({super.key});
 
   @override
   Widget build(BuildContext context) {
-
-    final textTheme =
-        Theme.of(context).textTheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Center(
-
       child: Text(
         'No hay registros todavía',
-        style:
-            textTheme.bodyLarge,
+        style: textTheme.bodyLarge?.copyWith(
+          color: AppColors.textMuted,
+        ),
       ),
     );
   }

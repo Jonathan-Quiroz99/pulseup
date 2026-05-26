@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_colors.dart';
 
-class ProgressSummaryCard
-    extends StatelessWidget {
-
+class ProgressSummaryCard extends StatelessWidget {
   final String title;
   final String value;
   final IconData icon;
@@ -18,54 +17,28 @@ class ProgressSummaryCard
 
   @override
   Widget build(BuildContext context) {
-
-    final theme =
-        Theme.of(context);
-
-    final textTheme =
-        theme.textTheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Expanded(
-
       child: Card(
-
         child: Padding(
-
-          padding: const EdgeInsets.all(
-            AppSpacing.md,
-          ),
-
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
-
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               Icon(
                 icon,
-                color:
-                    theme.colorScheme.primary,
+                color: AppColors.primary,
               ),
-
-              const SizedBox(
-                height: AppSpacing.sm,
-              ),
-
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 value,
-                style:
-                    textTheme.titleLarge,
+                style: textTheme.titleLarge,
               ),
-
-              const SizedBox(
-                height: AppSpacing.xs,
-              ),
-
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 title,
-                style:
-                    textTheme.bodySmall,
+                style: textTheme.bodySmall,
               ),
             ],
           ),
