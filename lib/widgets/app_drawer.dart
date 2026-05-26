@@ -4,6 +4,7 @@ import '../core/navigation/app_screen.dart';
 import '../core/theme/app_spacing.dart';
 
 import '../features/auth/user_session.dart';
+import '../features/auth/login_screen.dart';
 
 class AppDrawer
     extends StatelessWidget {
@@ -230,8 +231,19 @@ class AppDrawer
 
               Navigator.pop(context);
 
-              // TODO:
-              // Implementar logout
+              UserSession.logout();
+
+              Navigator.of(context)
+                  .pushAndRemoveUntil(
+
+                MaterialPageRoute(
+
+                  builder: (_) =>
+                      const LoginScreen(),
+                ),
+
+                (route) => false,
+              );
             },
           ),
         ],

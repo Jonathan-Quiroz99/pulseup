@@ -317,6 +317,10 @@ class _HomeScreenState
           onNavigate: _changeTab,
         ),
 
+        endDrawerEnableOpenDragGesture: true,
+
+        drawerEdgeDragWidth: 32,
+
         body:
             _buildScreen(),
 

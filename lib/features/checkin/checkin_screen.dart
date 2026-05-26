@@ -180,8 +180,7 @@ class _CheckinScreenState
             ),
 
             QRCard(
-              qrData:
-                  'PULSEUP:$memberId',
+              qrData: memberId,
             ),
 
             const SizedBox(
