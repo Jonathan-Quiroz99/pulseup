@@ -7,17 +7,22 @@ class StoreHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          const CircleAvatar(
-            child: Icon(Icons.store),
+          CircleAvatar(
+            backgroundColor: theme.colorScheme.primary,
+            child: const Icon(Icons.store, color: Colors.black),
           ),
+
           const SizedBox(width: 12),
+
           Text(
             title,
-            style: Theme.of(context).textTheme.titleLarge,
+            style: theme.textTheme.titleLarge,
           ),
         ],
       ),

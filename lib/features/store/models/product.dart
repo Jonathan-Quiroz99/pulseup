@@ -16,13 +16,23 @@ class Product {
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
+    final rawPrice = json['precio'].toString();
+
+    final cleanPrice = rawPrice
+        .replaceAll('\$', '')
+        .replaceAll(',', '')
+        .trim();
+
     return Product(
       id: json['id'],
       nombre: json['nombre'],
       categoria: json['categoria'],
-      precio: double.parse(json['precio'].toString()),
+      precio: double.tryParse(cleanPrice) ?? 0,
       descripcion: json['descripcion'] ?? '',
       stock: json['stock'] ?? 0,
     );
   }
+
+  // SOLO ESTO (opcional pero útil)
+  double get priceValue => precio;
 }
