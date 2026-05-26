@@ -289,6 +289,14 @@ class _LoginScreenState
 
               children: [
 
+                Image.asset(
+                  'assets/images/logo.png',
+                  width: 140,
+                  height: 140,
+                ),
+
+                const SizedBox(height: AppSpacing.md),
+
                 Text(
                   'PulseUp',
                   textAlign: TextAlign.center,
