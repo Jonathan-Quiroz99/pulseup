@@ -133,8 +133,14 @@ class NutritionService {
     }
 
     if (res.statusCode == 503) {
-      throw Exception(
-          'El análisis con IA no está disponible por ahora. Puedes agregar la comida manualmente.');
+      // Antes mostraba un mensaje generico fijo, sin importar la razon real
+      // que mandaba el backend (deshabilitado a proposito, falta API key,
+      // Ollama inalcanzable, etc.) — eso escondia la causa real al
+      // diagnosticar por que la funcion no respondia.
+      _throwFromBody(
+        res,
+        'El análisis con IA no está disponible por ahora. Puedes agregar la comida manualmente.',
+      );
     }
     if (res.statusCode == 502) {
       _throwFromBody(res, 'No se pudo analizar la imagen. Inténtalo de nuevo.');
