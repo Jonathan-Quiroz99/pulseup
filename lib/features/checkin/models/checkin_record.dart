@@ -1,3 +1,5 @@
+import '../../../core/utils/json_parse.dart';
+
 class CheckinRecord {
   final String id;
   final String fecha;
@@ -17,17 +19,19 @@ class CheckinRecord {
     required this.tipo,
   });
 
-  factory CheckinRecord.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  /// The backend sends `fecha` as an ISO date ("YYYY-MM-DD"). Returns null
+  /// for any legacy/display-formatted value so callers can just skip it.
+  DateTime? get date => DateTime.tryParse(fecha);
+
+  factory CheckinRecord.fromJson(Map<String, dynamic> json) {
     return CheckinRecord(
-      id: json["id"] ?? "",
-      fecha: json["fecha"] ?? "",
-      hora: json["hora"] ?? "",
-      acceso: json["acceso"] ?? "",
-      metodo: json["metodo"] ?? "",
-      puerta: json["puerta"] ?? "",
-      tipo: json["tipo"] ?? "Entrada",
+      id: asString(json['id']),
+      fecha: asString(json['fecha']),
+      hora: asString(json['hora']),
+      acceso: asString(json['acceso']),
+      metodo: asString(json['metodo']),
+      puerta: asString(json['puerta']),
+      tipo: asString(json['tipo'], fallback: 'Entrada'),
     );
   }
 }

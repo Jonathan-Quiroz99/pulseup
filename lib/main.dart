@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'core/session_guard.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/login_screen.dart';
+import 'features/auth/user_session.dart';
+import 'features/home/home_screen.dart';
 
 Future<void> main() async {
 
@@ -17,10 +20,52 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
 
     return MaterialApp(
+      navigatorKey: rootNavigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'PulseUp',
-      theme: AppTheme.darkTheme,
-      home: LoginScreen(),
+      theme: AppTheme.dark,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.dark,
+      home: const _StartupGate(),
+    );
+  }
+}
+
+/// Decides whether to send the user to [HomeScreen] (session already saved
+/// on-device) or [LoginScreen] (no saved session) while the app boots.
+class _StartupGate extends StatefulWidget {
+  const _StartupGate();
+
+  @override
+  State<_StartupGate> createState() => _StartupGateState();
+}
+
+class _StartupGateState extends State<_StartupGate> {
+  late final Future<bool> _hasSession;
+
+  @override
+  void initState() {
+    super.initState();
+    _hasSession = UserSession.restoreSession();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _hasSession,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        return snapshot.data == true
+            ? const HomeScreen()
+            : const LoginScreen();
+      },
     );
   }
 }

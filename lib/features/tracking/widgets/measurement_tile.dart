@@ -2,131 +2,83 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../widgets/ui/app_card.dart';
 import '../models/body_measurement.dart';
 
 class MeasurementTile extends StatelessWidget {
   final BodyMeasurement measurement;
+  final VoidCallback? onDelete;
 
-  const MeasurementTile({
-    super.key,
-    required this.measurement,
-  });
+  const MeasurementTile({super.key, required this.measurement, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
-
-    return Card(
-      margin: const EdgeInsets.only(
-        bottom: AppSpacing.sm,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  measurement.date,
-                  style: textTheme.titleMedium,
-                ),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: AppSpacing.xs,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(
-                      AppSpacing.radiusMd,
-                    ),
-                  ),
-                  child: Text(
-                    '${measurement.weightKg} kg',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: AppSpacing.sm),
-
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: [
-                _MeasurementChip(
-                  label: 'Grasa',
-                  value: '${measurement.bodyFat}%',
-                ),
-                _MeasurementChip(
-                  label: 'Músculo',
-                  value: '${measurement.muscle}%',
-                ),
-                _MeasurementChip(
-                  label: 'Cintura',
-                  value: '${measurement.waist}cm',
-                ),
-                _MeasurementChip(
-                  label: 'Pecho',
-                  value: '${measurement.chest}cm',
-                ),
-                _MeasurementChip(
-                  label: 'Brazo',
-                  value: '${measurement.arm}cm',
-                ),
-              ],
-            ),
-
-            if (measurement.notes.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                measurement.notes,
-                style: textTheme.bodyMedium,
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(measurement.date, style: AppTextStyles.titleMd),
               ),
+              Text(
+                '${measurement.weightKg.toStringAsFixed(1)} kg',
+                style: AppTextStyles.statSm.copyWith(color: AppColors.accent),
+              ),
+              if (onDelete != null)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  color: AppColors.textMuted,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onDelete,
+                ),
             ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              if (measurement.bodyFat != null)
+                _Chip('Grasa', '${measurement.bodyFat!.toStringAsFixed(1)}%'),
+              if (measurement.muscle != null)
+                _Chip('Músculo', '${measurement.muscle!.toStringAsFixed(1)}%'),
+              if (measurement.waist != null)
+                _Chip('Cintura', '${measurement.waist!.toStringAsFixed(1)} cm'),
+              if (measurement.chest != null)
+                _Chip('Pecho', '${measurement.chest!.toStringAsFixed(1)} cm'),
+              if (measurement.arm != null)
+                _Chip('Brazo', '${measurement.arm!.toStringAsFixed(1)} cm'),
+            ],
+          ),
+          if (measurement.notes.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(measurement.notes, style: AppTextStyles.bodySm),
           ],
-        ),
+        ],
       ),
     );
   }
 }
 
-class _MeasurementChip extends StatelessWidget {
+class _Chip extends StatelessWidget {
   final String label;
   final String value;
 
-  const _MeasurementChip({
-    required this.label,
-    required this.value,
-  });
+  const _Chip(this.label, this.value);
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 5),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(
-          AppSpacing.radiusMd,
-        ),
+        color: AppColors.surfaceHigh,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
       ),
-      child: Text(
-        '$label: $value',
-        style: theme.textTheme.bodySmall,
-      ),
+      child: Text('$label  $value', style: AppTextStyles.label),
     );
   }
 }

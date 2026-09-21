@@ -60,7 +60,7 @@ class CustomCard
 
             color: theme
                     .shadowColor
-                    .withOpacity(0.08),
+                    .withValues(alpha: 0.08),
 
             blurRadius: 10,
 

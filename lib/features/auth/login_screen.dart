@@ -1,449 +1,212 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../../core/http_helpers.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_text_styles.dart';
 import '../../services/api_service.dart';
+import '../../widgets/ui/app_button.dart';
+import '../../widgets/ui/app_text_field.dart';
 
 import '../home/home_screen.dart';
-//import 'register/register_screen.dart';
+import 'google_auth_service.dart';
 import 'user_session.dart';
 
 import 'register/register_step1_screen.dart';
+import 'register/register_step2_screen.dart';
 import 'register/models/register_models.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() =>
-      _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState
-    extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
-  final _emailController =
-      TextEditingController();
-
-  final _passwordController =
-      TextEditingController();
-
-  final ApiService _apiService =
-      ApiService();
-
-  final GoogleSignIn _googleSignIn =
-      GoogleSignIn(
-    scopes: ['email'],
-  );
+  final ApiService _apiService = ApiService();
+  final GoogleAuthService _googleAuth = GoogleAuthService();
 
   bool _isLoading = false;
-  bool _obscurePassword = true;
 
   Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    final email =
-        _emailController.text.trim();
-
-    final password =
-        _passwordController.text.trim();
-
-    if (email.isEmpty ||
-        password.isEmpty) {
-
-      _showError(
-        'Ingresa correo y contraseña',
-      );
-
+    if (email.isEmpty || password.isEmpty) {
+      _showError('Ingresa correo y contraseña');
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-
-      final response =
-          await _apiService.memberLogin(
-        email,
-        password,
-      );
-
-      _saveSession(response);
-
+      final response = await _apiService.memberLogin(email, password);
+      await _saveSession(response);
       if (!mounted) return;
-
       _navigateToHome();
-
     } catch (e) {
-
-      _showError(
-        'Error de login\n$e',
-      );
-
+      _showError(friendlyError(e));
     } finally {
-
-      if (mounted) {
-
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _googleLogin() async {
+    setState(() => _isLoading = true);
+    try {
+      final outcome = await _googleAuth.signInOrRegister();
+      if (!mounted || outcome.cancelled) return;
 
-  try {
+      if (outcome.error != null) {
+        _showError(outcome.error!);
+        return;
+      }
 
-    setState(() {
-      _isLoading = true;
-    });
+      if (outcome.isSession) {
+        await _saveSession(outcome.session!, googleUser: outcome.googleUser);
+        if (!mounted) return;
+        _navigateToHome();
+        return;
+      }
 
-    print('STEP 1');
-
-    await _googleSignIn.signOut();
-
-    print('STEP 2');
-
-    final googleUser =
-        await _googleSignIn.signIn();
-
-    print('STEP 3');
-
-    if (googleUser == null) {
-
-      print('GOOGLE USER NULL');
-      return;
-    }
-
-    print('EMAIL: ${googleUser.email}');
-
-    final googleAuth =
-        await googleUser.authentication;
-
-    print('STEP 4');
-
-    print('ACCESS TOKEN: ${googleAuth.accessToken}');
-    print('ID TOKEN: ${googleAuth.idToken}');
-
-    final idToken =
-        googleAuth.idToken;
-
-    if (idToken == null ||
-        idToken.isEmpty) {
-
-      throw Exception(
-        'Google no devolvió ID Token',
-      );
-    }
-
-    print('STEP 5');
-
-    final response =
-        await _apiService.googleLogin(
-      idToken,
-    );
-
-    print(response);
-
-    if (response['requiresRegistration'] == true) {
-
-      if (!mounted) return;
-
+      // Cuenta nueva: como Google ya nos dio nombre y correo, saltamos el paso
+      // de datos personales y vamos directo a elegir plan.
       Navigator.push(
-
         context,
-
         MaterialPageRoute(
-
-          builder: (_) =>
-              RegisterStep1Screen(
-
-            initialData: RegisterData(
-
-              nombre:
-                  response['googleData']['nombre'] ?? '',
-
-              apellidos:
-                  response['googleData']['apellidos'] ?? '',
-
-              correo:
-                  response['googleData']['correo'] ?? '',
-
-              telefono: '',
-
-              fechaNacimiento: '',
-
-              isGoogle: true,
-
-              googleCredential: idToken,
-            ),
-          ),
+          builder: (_) => RegisterStep2Screen(data: outcome.needsRegistration!),
         ),
       );
-
-      return;
-    }
-
-    _saveSession(
-      response,
-      googleUser: googleUser,
-    );
-
-    if (!mounted) return;
-
-    _navigateToHome();
-
-  } catch (e, stack) {
-
-    print('GOOGLE LOGIN ERROR');
-    print(e);
-    print(stack);
-
-    _showError(
-      'Google Login Error\n$e',
-    );
-
-  } finally {
-
-    if (mounted) {
-
-      setState(() {
-        _isLoading = false;
-      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
-}
 
   void _navigateToHome() {
-
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) =>
-            const HomeScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
   }
 
-  void _saveSession(
-      Map<String, dynamic> response, {
-      GoogleSignInAccount? googleUser,
-    }) {
+  Future<void> _saveSession(
+    Map<String, dynamic> response, {
+    GoogleSignInAccount? googleUser,
+  }) async {
+    await UserSession.setSession({
+      ...response,
+      'picture': googleUser?.photoUrl,
+    });
 
-      UserSession.setSession({
-
-        ...response,
-
-        "picture":
-            googleUser?.photoUrl,
-      });
-
-      if (UserSession.profileImage != null) {
-
-        precacheImage(
-
-          NetworkImage(
-            UserSession.profileImage!,
-          ),
-
-          context,
-        );
-      }
+    if (UserSession.profileImage != null && mounted) {
+      precacheImage(NetworkImage(UserSession.profileImage!), context);
     }
+  }
 
   void _showError(String message) {
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-
-      SnackBar(
-        content: Text(message),
-      ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-
-    final textTheme =
-        Theme.of(context).textTheme;
-
     return Scaffold(
-
       body: SafeArea(
-
         child: Center(
-
           child: SingleChildScrollView(
-
-            padding: const EdgeInsets.all(
-              AppSpacing.lg,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.screenX,
+              vertical: AppSpacing.xxl,
             ),
-
             child: Column(
-
-              crossAxisAlignment:
-                  CrossAxisAlignment.stretch,
-
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-
-                Image.asset(
-                  'assets/images/logo.png',
-                  width: 140,
-                  height: 140,
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentSoft,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                    ),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 72,
+                      height: 72,
+                    ),
+                  ),
                 ),
-
-                const SizedBox(height: AppSpacing.md),
-
+                const SizedBox(height: AppSpacing.lg),
                 Text(
                   'PulseUp',
                   textAlign: TextAlign.center,
-                  style:
-                      textTheme.headlineLarge,
+                  style: AppTextStyles.displayLg,
                 ),
-
-                const SizedBox(
-                  height: AppSpacing.xl,
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Tu gimnasio, en tu bolsillo',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodySm,
                 ),
-
-                TextField(
-                  controller:
-                      _emailController,
-
-                  keyboardType:
-                      TextInputType
-                          .emailAddress,
-
-                  decoration:
-                      const InputDecoration(
-                    hintText:
-                        'Correo electrónico',
-
-                    prefixIcon: Icon(
-                      Icons.email_outlined,
-                    ),
-                  ),
+                const SizedBox(height: AppSpacing.xxl),
+                AppTextField(
+                  controller: _emailController,
+                  label: 'Correo electrónico',
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: Icons.mail_outline,
+                  autofillHints: const [AutofillHints.email],
+                  textInputAction: TextInputAction.next,
                 ),
-
-                const SizedBox(
-                  height: AppSpacing.md,
+                const SizedBox(height: AppSpacing.md),
+                AppTextField(
+                  controller: _passwordController,
+                  label: 'Contraseña',
+                  obscureText: true,
+                  prefixIcon: Icons.lock_outline,
+                  autofillHints: const [AutofillHints.password],
+                  textInputAction: TextInputAction.done,
                 ),
-
-                TextField(
-                  controller:
-                      _passwordController,
-
-                  obscureText:
-                      _obscurePassword,
-
-                  decoration:
-                      InputDecoration(
-                    hintText:
-                        'Contraseña',
-
-                    prefixIcon:
-                        const Icon(
-                      Icons.lock_outline,
-                    ),
-
-                    suffixIcon:
-                        IconButton(
-
-                      onPressed: () {
-
-                        setState(() {
-
-                          _obscurePassword =
-                              !_obscurePassword;
-                        });
-                      },
-
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                      ),
-                    ),
-                  ),
+                const SizedBox(height: AppSpacing.xl),
+                AppButton(
+                  label: 'Iniciar sesión',
+                  loading: _isLoading,
+                  onPressed: _login,
                 ),
-
-                const SizedBox(
-                  height: AppSpacing.lg,
+                const SizedBox(height: AppSpacing.md),
+                AppButton(
+                  label: 'Continuar con Google',
+                  icon: Icons.g_mobiledata,
+                  variant: AppButtonVariant.secondary,
+                  onPressed: _isLoading ? null : _googleLogin,
                 ),
-
-                ElevatedButton(
-
-                  onPressed:
-                      _isLoading
-                          ? null
-                          : _login,
-
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child:
-                              CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'Iniciar Sesión',
-                        ),
-                ),
-
-                const SizedBox(
-                  height: AppSpacing.md,
-                ),
-
-                OutlinedButton.icon(
-
-                  onPressed:
-                      _isLoading
-                          ? null
-                          : _googleLogin,
-
-                  icon: const Icon(
-                    Icons.g_mobiledata,
-                  ),
-
-                  label: const Text(
-                    'Continuar con Google',
-                  ),
-                ),
-
-                const SizedBox(
-                  height: AppSpacing.sm,
-                ),
-
-                TextButton(
-
-                  onPressed: () {
-
-                    Navigator.push(
-
-                      context,
-
-                      MaterialPageRoute(
-                        builder: (_) =>
-                          RegisterStep1Screen(
-                            initialData: RegisterData(
-                              nombre: '',
-                              apellidos: '',
-                              correo: '',
-                              telefono: '',
-                              fechaNacimiento: '',
-                              isGoogle: false,
-                            ),
-                          ),
-                      ),
-                    );
-                  },
-
-                  child: const Text(
-                    '¿No tienes cuenta? Regístrate',
+                const SizedBox(height: AppSpacing.lg),
+                Center(
+                  child: TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RegisterStep1Screen(
+                                  initialData: RegisterData(
+                                    nombre: '',
+                                    apellidos: '',
+                                    correo: '',
+                                    telefono: '',
+                                    fechaNacimiento: '',
+                                    isGoogle: false,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                    child: const Text('¿No tienes cuenta?  Regístrate'),
                   ),
                 ),
               ],
@@ -456,10 +219,8 @@ class _LoginScreenState
 
   @override
   void dispose() {
-
     _emailController.dispose();
     _passwordController.dispose();
-
     super.dispose();
   }
 }

@@ -1,108 +1,46 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-
+import '../../../core/theme/app_text_styles.dart';
+import '../../../widgets/ui/app_card.dart';
 import '../models/checkin_record.dart';
 
-class CheckinHistoryTile
-    extends StatelessWidget {
-
+class CheckinHistoryTile extends StatelessWidget {
   final CheckinRecord checkin;
 
-  const CheckinHistoryTile({
-    super.key,
-    required this.checkin,
-  });
+  const CheckinHistoryTile({super.key, required this.checkin});
 
   @override
   Widget build(BuildContext context) {
-
-    final theme =
-        Theme.of(context);
-
-    final textTheme =
-        theme.textTheme;
-
-    return Card(
-
-      child: Padding(
-
-        padding: const EdgeInsets.all(
-          AppSpacing.md,
-        ),
-
-        child: Row(
-
-          children: [
-
-            Container(
-
-              padding: const EdgeInsets.all(
-                AppSpacing.sm,
-              ),
-
-              decoration: BoxDecoration(
-
-                color: theme
-                    .colorScheme.primary
-                    .withOpacity(0.12),
-
-                borderRadius:
-                    BorderRadius.circular(
-                  AppSpacing.radiusMd,
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceHigh,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+            ),
+            child: const Icon(Icons.login, color: AppColors.textSecondary, size: 18),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(checkin.tipo, style: AppTextStyles.titleMd),
+                const SizedBox(height: 2),
+                Text(
+                  '${checkin.fecha}  ·  ${checkin.hora}'
+                  '${checkin.puerta.isNotEmpty ? '  ·  ${checkin.puerta}' : ''}',
+                  style: AppTextStyles.label,
                 ),
-              ),
-
-              child: Icon(
-                Icons.login,
-                color:
-                    theme.colorScheme.primary,
-              ),
+              ],
             ),
-
-            const SizedBox(
-              width: AppSpacing.sm,
-            ),
-
-            Expanded(
-
-              child: Column(
-
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-
-                children: [
-
-                  Text(
-                    checkin.tipo,
-                    style:
-                        textTheme.titleMedium,
-                  ),
-
-                  const SizedBox(
-                    height: AppSpacing.xs,
-                  ),
-
-                  Text(
-                    '${checkin.fecha} • ${checkin.hora}',
-                    style:
-                        textTheme.bodyMedium,
-                  ),
-
-                  const SizedBox(
-                    height: AppSpacing.xs,
-                  ),
-
-                  Text(
-                    checkin.puerta,
-                    style:
-                        textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

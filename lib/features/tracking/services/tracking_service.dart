@@ -1,9 +1,14 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../../../core/api_config.dart';
+import '../../../core/http_helpers.dart';
 import '../models/body_measurement.dart';
 
 class TrackingService {
-  static const String baseUrl = "https://membersync-byso.onrender.com";
+  // Antes estaba hardcodeado a produccion: en dev/staging tracking pegaba a
+  // otro backend distinto al de login/perfil. Ahora usa la config unica.
+  static const String baseUrl = ApiConfig.baseUrl;
 
   Future<List<BodyMeasurement>> fetchMeasurements(String token) async {
     final response = await http.get(
@@ -11,7 +16,9 @@ class TrackingService {
       headers: {
         "Authorization": "Bearer $token",
       },
-    );
+    ).timeout(apiTimeout);
+
+    await checkAuthResponse(response);
 
     if (response.statusCode != 200) {
       throw Exception("Failed to load measurements");
@@ -26,28 +33,28 @@ class TrackingService {
     required double weightKg,
     double? bodyFat,
     double? muscle,
-    required double waist,
+    double? waist,
     double? hip,
-    required double chest,
-    required double arm,
+    double? chest,
+    double? arm,
     double? heightCm,
     required String notes,
   }) async {
     final Map<String, dynamic> requestBody = {
       "peso_kg": weightKg,
-      "cintura_cm": waist,
-      "pecho_cm": chest,
-      "brazo_cm": arm,
       "notas": notes,
     };
-    
+
     if (bodyFat != null) requestBody["grasa_pct"] = bodyFat;
     if (muscle != null) requestBody["musculo_pct"] = muscle;
+    if (waist != null) requestBody["cintura_cm"] = waist;
     if (hip != null) requestBody["cadera_cm"] = hip;
+    if (chest != null) requestBody["pecho_cm"] = chest;
+    if (arm != null) requestBody["brazo_cm"] = arm;
+    // El backend acepta altura_cm y la guarda en el perfil del socio
+    // (para el historial de IMC). La primera medición ya no se queda sin altura.
     if (heightCm != null) requestBody["altura_cm"] = heightCm;
-    
-    print('Enviando medición: $requestBody'); // Debug
-    
+
     final response = await http.post(
       Uri.parse("$baseUrl/api/mobile/me/measurements"),
       headers: {
@@ -55,16 +62,35 @@ class TrackingService {
         "Content-Type": "application/json",
       },
       body: jsonEncode(requestBody),
-    );
+    ).timeout(apiTimeout);
 
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
+    if (kDebugMode) {
+      debugPrint('POST measurements -> ${response.statusCode}');
+    }
+
+    await checkAuthResponse(response);
 
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception("Failed to add measurement: ${response.statusCode}");
     }
   }
   
+  // Borrar una medición
+  Future<void> deleteMeasurement(String token, String measurementId) async {
+    final response = await http.delete(
+      Uri.parse("$baseUrl/api/mobile/me/measurements/$measurementId"),
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+    ).timeout(apiTimeout);
+
+    await checkAuthResponse(response);
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception("Failed to delete measurement: ${response.statusCode}");
+    }
+  }
+
   // Guardar altura del usuario en el backend
   Future<void> saveUserHeight(String token, double heightCm) async {
     final response = await http.post(
@@ -76,10 +102,10 @@ class TrackingService {
       body: jsonEncode({
         "altura_cm": heightCm,
       }),
-    );
-    
-    print('Save height response: ${response.statusCode}');
-    
+    ).timeout(apiTimeout);
+
+    await checkAuthResponse(response);
+
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception("Failed to save height");
     }
@@ -93,14 +119,16 @@ class TrackingService {
         headers: {
           "Authorization": "Bearer $token",
         },
-      );
-      
+      ).timeout(apiTimeout);
+
+      await checkAuthResponse(response);
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return (data['altura_cm'] as num?)?.toDouble();
       }
     } catch (e) {
-      print('Error getting height: $e');
+      debugPrint('Error getting height: $e');
     }
     return null;
   }

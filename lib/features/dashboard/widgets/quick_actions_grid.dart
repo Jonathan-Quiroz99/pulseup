@@ -1,92 +1,43 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/navigation/app_screen.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../widgets/ui/app_card.dart';
 
-class QuickActionsGrid
-    extends StatelessWidget {
+class QuickActionsGrid extends StatelessWidget {
+  final Function(AppScreen) onNavigate;
 
-  final Function(AppScreen)
-      onNavigate;
-
-  const QuickActionsGrid({
-    super.key,
-    required this.onNavigate,
-  });
+  const QuickActionsGrid({super.key, required this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
+    const items = [
+      (Icons.qr_code_2_outlined, 'Check-In', AppScreen.checkin),
+      (Icons.fitness_center_outlined, 'Rutinas', AppScreen.routines),
+      (Icons.show_chart_outlined, 'Progreso', AppScreen.tracking),
+      (Icons.receipt_long_outlined, 'Cuenta', AppScreen.billing),
+    ];
 
-    return GridView.count(
-
-      crossAxisCount: 4,
-
-      shrinkWrap: true,
-
-      physics:
-          const NeverScrollableScrollPhysics(),
-
-      crossAxisSpacing:
-          AppSpacing.sm,
-
-      mainAxisSpacing:
-          AppSpacing.sm,
-
-      childAspectRatio: 0.9,
-
+    return Row(
       children: [
-
-        _ActionItem(
-          icon: Icons.qr_code,
-          label: 'Check-In',
-          onTap: () {
-
-            onNavigate(
-              AppScreen.checkin,
-            );
-          },
-        ),
-
-        _ActionItem(
-          icon: Icons.fitness_center,
-          label: 'Rutinas',
-          onTap: () {
-
-            onNavigate(
-              AppScreen.routines,
-            );
-          },
-        ),
-
-        _ActionItem(
-          icon: Icons.show_chart,
-          label: 'Progreso',
-          onTap: () {
-
-            onNavigate(
-              AppScreen.tracking,
-            );
-          },
-        ),
-
-        _ActionItem(
-          icon: Icons.credit_card,
-          label: 'Cuenta',
-          onTap: () {
-
-            onNavigate(
-              AppScreen.billing,
-            );
-          },
-        ),
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: _ActionItem(
+              icon: items[i].$1,
+              label: items[i].$2,
+              onTap: () => onNavigate(items[i].$3),
+            ),
+          ),
+        ],
       ],
     );
   }
 }
 
-class _ActionItem
-    extends StatelessWidget {
-
+class _ActionItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -99,67 +50,19 @@ class _ActionItem
 
   @override
   Widget build(BuildContext context) {
-
-    final theme =
-        Theme.of(context);
-
-    final textTheme =
-        theme.textTheme;
-
-    return InkWell(
-
-      borderRadius:
-          BorderRadius.circular(
-        AppSpacing.radiusMd,
-      ),
-
+    return AppCard(
       onTap: onTap,
-
-      child: Ink(
-
-        decoration: BoxDecoration(
-
-          color:
-              theme.cardColor,
-
-          borderRadius:
-              BorderRadius.circular(
-            AppSpacing.radiusMd,
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.accent, size: 22),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.label.copyWith(color: AppColors.textPrimary),
           ),
-        ),
-
-        child: Padding(
-
-          padding: const EdgeInsets.all(
-            AppSpacing.sm,
-          ),
-
-          child: Column(
-
-            mainAxisAlignment:
-                MainAxisAlignment.center,
-
-            children: [
-
-              Icon(
-                icon,
-                color:
-                    theme.colorScheme.primary,
-              ),
-
-              const SizedBox(
-                height: AppSpacing.xs,
-              ),
-
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style:
-                    textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

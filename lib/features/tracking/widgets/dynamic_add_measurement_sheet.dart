@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../services/body_calculations_service.dart';
 
 class DynamicAddMeasurementSheet extends StatefulWidget {
@@ -7,9 +10,14 @@ class DynamicAddMeasurementSheet extends StatefulWidget {
   final TextEditingController chestController;
   final TextEditingController armController;
   final TextEditingController notesController;
-  final VoidCallback onSave;
+  final Future<void> Function() onSave;
   final double? existingHeight; // Altura existente del usuario
-  final Function(double)? onSaveHeight; // Callback para guardar altura si se ingresa
+  final int? existingAge; // Edad calculada del perfil (si se conoce)
+  final String initialGender;
+  final Future<void> Function(double)? onSaveHeight; // Guarda la altura (se espera antes de guardar la medición)
+  final Function(String)? onGenderChanged; // Reporta el género elegido al padre
+  final Function(int)? onAgeChanged; // Reporta la edad escrita manualmente al padre
+  final ValueChanged<bool>? onAutoCalcChanged; // Reporta el switch "Auto calcular"
 
   const DynamicAddMeasurementSheet({
     super.key,
@@ -20,7 +28,12 @@ class DynamicAddMeasurementSheet extends StatefulWidget {
     required this.notesController,
     required this.onSave,
     this.existingHeight,
+    this.existingAge,
+    this.initialGender = 'male',
     this.onSaveHeight,
+    this.onGenderChanged,
+    this.onAgeChanged,
+    this.onAutoCalcChanged,
   });
 
   @override
@@ -30,103 +43,184 @@ class DynamicAddMeasurementSheet extends StatefulWidget {
 class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet> {
   final _formKey = GlobalKey<FormState>();
   final _heightController = TextEditingController();
-  String _selectedGender = 'male'; // 'male' o 'female'
+  final _ageController = TextEditingController();
+  late String _selectedGender; // 'male' o 'female'
   bool _autoCalculate = true;
-  
+  bool _saving = false;
+
   // Resultados calculados
   double? _calculatedBodyFat;
   double? _calculatedMuscle;
   double? _calculatedBMI;
   String _bmiCategory = '';
-  Color _bmiColor = Colors.green;
-  
+  Color _bmiColor = AppColors.success;
+  // Qué fórmula se usó para el último cálculo de grasa/músculo, para
+  // mostrar el pie de nota correcto.
+  String? _bodyFatMethod;
+
   @override
   void initState() {
     super.initState();
-    
+
+    _selectedGender = widget.initialGender;
+
     // Si ya existe altura, pre-llenar
     if (widget.existingHeight != null) {
       _heightController.text = widget.existingHeight!.toString();
     }
-    
+
+    if (widget.existingAge != null) {
+      _ageController.text = widget.existingAge!.toString();
+    }
+
     // Agregar listeners para cálculos automáticos
     widget.weightController.addListener(_calculateMetrics);
     widget.waistController.addListener(_calculateMetrics);
     _heightController.addListener(_calculateMetrics);
+    _ageController.addListener(_calculateMetrics);
   }
-  
+
   @override
   void dispose() {
+    // These controllers are owned by the parent screen and outlive this
+    // sheet — the listeners must come off or _calculateMetrics fires
+    // setState() on a disposed State when the parent clears the fields
+    // after a successful save.
+    widget.weightController.removeListener(_calculateMetrics);
+    widget.waistController.removeListener(_calculateMetrics);
+    _heightController.removeListener(_calculateMetrics);
+    _ageController.removeListener(_calculateMetrics);
+
     _heightController.dispose();
+    _ageController.dispose();
     super.dispose();
   }
-  
+
   void _calculateMetrics() {
+    if (!mounted) return;
     if (!_autoCalculate) return;
-    
-    final weight = double.tryParse(widget.weightController.text);
-    final waist = double.tryParse(widget.waistController.text);
-    final height = double.tryParse(_heightController.text);
-    
-    if (weight != null && waist != null && height != null && height > 0) {
-      setState(() {
-        // Calcular grasa corporal
-        _calculatedBodyFat = BodyCalculationsService.calculateBodyFat(
-          weightKg: weight,
-          waistCm: waist,
-          heightCm: height,
-          gender: _selectedGender,
-        );
-        
-        // Calcular masa muscular
-        if (_calculatedBodyFat != null) {
-          _calculatedMuscle = BodyCalculationsService.calculateMusclePercentage(
-            weightKg: weight,
-            bodyFatPercentage: _calculatedBodyFat!,
-          );
-        }
-        
-        // Calcular IMC
-        _calculatedBMI = BodyCalculationsService.calculateBMI(
-          weightKg: weight,
-          heightCm: height,
-        );
-        
-        if (_calculatedBMI != null) {
-          _bmiCategory = BodyCalculationsService.getBMICategory(_calculatedBMI!);
-          _bmiColor = BodyCalculationsService.getBMIColor(_calculatedBMI!);
-        }
-      });
-    } else {
+
+    // Rangos de cordura: fuera de esto lo tratamos como "todavía no válido"
+    // para no mostrar un IMC o una grasa disparatados mientras se teclea.
+    double? sane(String s, double lo, double hi) {
+      final n = double.tryParse(s.replaceAll(',', '.'));
+      return (n != null && n >= lo && n <= hi) ? n : null;
+    }
+
+    final weight = sane(widget.weightController.text, 20, 400);
+    final waist = sane(widget.waistController.text, 40, 200);
+    final height = sane(_heightController.text, 120, 230);
+    final age = int.tryParse(_ageController.text);
+
+    // Report a manually-typed age back to the parent immediately — not
+    // just at save time — so it's not lost if the user never touches
+    // this field again before tapping "Guardar".
+    if (widget.existingAge == null && age != null && age > 0) {
+      widget.onAgeChanged?.call(age);
+    }
+
+    if (weight == null || height == null || height <= 0) {
       setState(() {
         _calculatedBodyFat = null;
         _calculatedMuscle = null;
         _calculatedBMI = null;
+        _bodyFatMethod = null;
       });
+      return;
     }
+
+    setState(() {
+      if (waist != null) {
+        // Más preciso: usa la cintura real.
+        _calculatedBodyFat = BodyCalculationsService.calculateBodyFat(
+          waistCm: waist,
+          heightCm: height,
+          gender: _selectedGender,
+        );
+        _bodyFatMethod = 'cintura';
+      } else if (age != null && age > 0) {
+        // Sin cintura: estimar con peso, altura, edad y sexo.
+        _calculatedBodyFat = BodyCalculationsService.calculateBodyFatFromBMI(
+          weightKg: weight,
+          heightCm: height,
+          age: age,
+          gender: _selectedGender,
+        );
+        _bodyFatMethod = 'imc';
+      } else {
+        _calculatedBodyFat = null;
+        _bodyFatMethod = null;
+      }
+
+      if (_calculatedBodyFat != null) {
+        _calculatedMuscle = BodyCalculationsService.calculateMusclePercentage(
+          weightKg: weight,
+          bodyFatPercentage: _calculatedBodyFat!,
+        );
+      } else {
+        _calculatedMuscle = null;
+      }
+
+      // El IMC solo necesita peso y altura, siempre se puede calcular.
+      _calculatedBMI = BodyCalculationsService.calculateBMI(
+        weightKg: weight,
+        heightCm: height,
+      );
+      _bmiCategory = BodyCalculationsService.getBMICategory(_calculatedBMI!);
+      _bmiColor = BodyCalculationsService.getBMIColor(_calculatedBMI!);
+    });
   }
   
-  void _save() {
-    if (_formKey.currentState!.validate()) {
-      // Si hay altura nueva y no existía antes, guardarla
+  Future<void> _save() async {
+    if (_saving) return; // Evita doble envío si tocan el botón dos veces.
+
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _saving = true;
+    });
+
+    try {
+      // Si hay altura nueva y no existía antes, guardarla PRIMERO y esperar:
+      // así el padre ya tiene _userHeight cuando corre onSave() y la primera
+      // medición sí calcula grasa/músculo/IMC.
       if (widget.existingHeight == null && _heightController.text.isNotEmpty) {
-        final newHeight = double.parse(_heightController.text);
-        if (widget.onSaveHeight != null) {
-          widget.onSaveHeight!(newHeight);
+        final newHeight = double.tryParse(_heightController.text);
+        if (newHeight != null && newHeight > 0 && widget.onSaveHeight != null) {
+          await widget.onSaveHeight!(newHeight);
         }
       }
-      widget.onSave();
+
+      // Si hay edad nueva y no existía antes, reportarla también.
+      if (widget.existingAge == null && _ageController.text.isNotEmpty) {
+        final newAge = int.tryParse(_ageController.text);
+        if (newAge != null && newAge > 0) {
+          widget.onAgeChanged?.call(newAge);
+        }
+      }
+
+      await widget.onSave();
+    } finally {
+      // onSave normally pops this sheet on success, so `mounted` guards
+      // against setState after that (or after an error) disposes it.
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
     }
   }
   
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(20),
+    return SafeArea(
+      child: Container(
+      decoration: const BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.radiusLg),
         ),
+        border: Border(top: BorderSide(color: AppColors.hairline)),
       ),
       child: DraggableScrollableSheet(
         initialChildSize: 0.9,
@@ -142,18 +236,16 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: const BoxDecoration(
-                    border: Border(bottom: BorderSide(color: Colors.grey, width: 0.5)),
+                    border: Border(
+                        bottom: BorderSide(color: AppColors.hairline)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Nueva Medición',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
+                      Text('Nueva medición', style: AppTextStyles.titleLg),
                       Row(
                         children: [
-                          const Text('Auto calcular', style: TextStyle(fontSize: 12)),
+                          Text('Auto calcular', style: AppTextStyles.label),
                           Switch(
                             value: _autoCalculate,
                             onChanged: (value) {
@@ -161,6 +253,7 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                 _autoCalculate = value;
                                 if (value) _calculateMetrics();
                               });
+                              widget.onAutoCalcChanged?.call(value);
                             },
                           ),
                         ],
@@ -186,7 +279,7 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                               children: [
                                 const Text(
                                   'Información Personal',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  style: AppTextStyles.titleMd,
                                 ),
                                 const SizedBox(height: 12),
                                 Row(
@@ -205,7 +298,7 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                     padding: const EdgeInsets.only(top: 8),
                                     child: Text(
                                       'El género se usa para cálculos más precisos',
-                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                      style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                                     ),
                                   ),
                               ],
@@ -230,14 +323,6 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                   'Ej: 75.5',
                                 ),
                                 const SizedBox(height: 12),
-                                _buildTextField(
-                                  'Circunferencia de Cintura (cm)',
-                                  widget.waistController,
-                                  Icons.straighten,
-                                  true,
-                                  'Medir a la altura del ombligo',
-                                ),
-                                const SizedBox(height: 12),
                                 if (widget.existingHeight == null)
                                   _buildTextField(
                                     'Altura (cm)',
@@ -246,34 +331,66 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                     true,
                                     'Ej: 175',
                                   ),
+                                if (widget.existingHeight == null)
+                                  const SizedBox(height: 12),
+                                if (widget.existingAge == null)
+                                  _buildTextField(
+                                    'Edad',
+                                    _ageController,
+                                    Icons.cake,
+                                    false,
+                                    'Opcional — para estimar sin cintura',
+                                  ),
                               ],
                             ),
                           ),
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
-                        // Medidas adicionales
+
+                        // Medidas opcionales — si no se llenan, la grasa
+                        // corporal se estima solo con peso, altura, edad
+                        // y sexo en vez de la cintura.
                         Card(
                           elevation: 2,
                           child: Padding(
                             padding: const EdgeInsets.all(12),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                const Text(
+                                  'Medidas opcionales',
+                                  style: AppTextStyles.titleMd,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '¿No te quieres medir con cinta? Déjalas vacías — '
+                                  'igual calculamos tu grasa corporal con peso, altura, edad y sexo.',
+                                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                ),
+                                const SizedBox(height: 12),
+                                _buildTextField(
+                                  'Circunferencia de Cintura (cm)',
+                                  widget.waistController,
+                                  Icons.straighten,
+                                  false,
+                                  'Opcional — medir a la altura del ombligo',
+                                ),
+                                const SizedBox(height: 12),
                                 _buildTextField(
                                   'Pecho (cm)',
                                   widget.chestController,
                                   Icons.fitness_center,
-                                  true,
-                                  'Medir a la altura del pecho',
+                                  false,
+                                  'Opcional — medir a la altura del pecho',
                                 ),
                                 const SizedBox(height: 12),
                                 _buildTextField(
                                   'Brazo (cm)',
                                   widget.armController,
                                   Icons.accessibility,
-                                  true,
-                                  'Medir el bíceps flexionado',
+                                  false,
+                                  'Opcional — medir el bíceps flexionado',
                                 ),
                               ],
                             ),
@@ -286,14 +403,14 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                         if (_autoCalculate && _calculatedBodyFat != null && _calculatedMuscle != null) ...[
                           Card(
                             elevation: 2,
-                            color: Colors.blue.shade50,
+                            color: AppColors.accentSoft,
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Column(
                                 children: [
                                   const Text(
                                     'Resultados Calculados',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    style: AppTextStyles.titleMd,
                                   ),
                                   const SizedBox(height: 12),
                                   Row(
@@ -312,7 +429,7 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                           'Masa Muscular',
                                           '${_calculatedMuscle!.toStringAsFixed(1)}%',
                                           Icons.fitness_center,
-                                          Colors.green,
+                                          AppColors.success,
                                         ),
                                       ),
                                     ],
@@ -322,7 +439,7 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                     Container(
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: _bmiColor.withOpacity(0.1),
+                                        color: _bmiColor.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(color: _bmiColor),
                                       ),
@@ -355,8 +472,10 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                   ],
                                   const SizedBox(height: 8),
                                   Text(
-                                    '* Basado en peso, altura y cintura',
-                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                    _bodyFatMethod == 'cintura'
+                                        ? '* Basado en peso, altura y cintura'
+                                        : '* Estimado con peso, altura, edad y sexo (sin cintura) — agrégala para mayor precisión',
+                                    style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                                   ),
                                 ],
                               ),
@@ -389,7 +508,7 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                           children: [
                             Expanded(
                               child: OutlinedButton(
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: _saving ? null : () => Navigator.pop(context),
                                 style: OutlinedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                 ),
@@ -398,16 +517,18 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: ElevatedButton(
-                                onPressed: _save,
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  backgroundColor: Colors.blue,
-                                ),
-                                child: const Text(
-                                  'Guardar Medición',
-                                  style: TextStyle(fontSize: 16),
-                                ),
+                              child: FilledButton(
+                                onPressed: _saving ? null : _save,
+                                child: _saving
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: AppColors.onAccent,
+                                        ),
+                                      )
+                                    : const Text('Guardar medición'),
                               ),
                             ),
                           ],
@@ -421,9 +542,10 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
           );
         },
       ),
+      ),
     );
   }
-  
+
   Widget _buildGenderOption(String value, String label, IconData icon) {
     final isSelected = _selectedGender == value;
     return GestureDetector(
@@ -432,26 +554,28 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
           _selectedGender = value;
           _calculateMetrics();
         });
+        widget.onGenderChanged?.call(value);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.shade50 : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? AppColors.accentSoft : AppColors.surfaceHigh,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           border: Border.all(
-            color: isSelected ? Colors.blue : Colors.grey.shade300,
-            width: 2,
+            color: isSelected ? AppColors.accent : AppColors.hairline,
+            width: 1.5,
           ),
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? Colors.blue : Colors.grey),
+            Icon(icon,
+                color: isSelected ? AppColors.accent : AppColors.textMuted),
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? Colors.blue : Colors.grey.shade700,
+              style: AppTextStyles.label.copyWith(
+                color:
+                    isSelected ? AppColors.accent : AppColors.textSecondary,
               ),
             ),
           ],
@@ -481,9 +605,14 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
           return 'Este campo es requerido';
         }
         if (value != null && value.isNotEmpty) {
-          final number = double.tryParse(value);
+          final number = double.tryParse(value.replaceAll(',', '.'));
           if (number == null || number <= 0) {
             return 'Ingrese un valor válido';
+          }
+          // Cota de cordura: peso en kg y circunferencias en cm caben de sobra
+          // por debajo de 500. Evita IMC absurdos por un typo (ej. "8600").
+          if (number > 500) {
+            return 'Ese valor parece demasiado alto';
           }
         }
         return null;
@@ -495,15 +624,8 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 3,
-          ),
-        ],
+        color: AppColors.surfaceHigh,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
       ),
       child: Column(
         children: [
@@ -511,16 +633,9 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
           const SizedBox(height: 4),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+            style: AppTextStyles.statSm.copyWith(color: color),
           ),
-          Text(
-            title,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-          ),
+          Text(title, style: AppTextStyles.label),
         ],
       ),
     );

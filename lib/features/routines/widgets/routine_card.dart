@@ -1,153 +1,63 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-
-import '../../../widgets/custom_card.dart';
-
+import '../../../core/theme/app_text_styles.dart';
+import '../../../widgets/ui/app_card.dart';
 import '../models/workout_plan.dart';
-
 import 'exercise_tile.dart';
 
-class RoutineCard
-    extends StatelessWidget {
-
+class RoutineCard extends StatelessWidget {
   final WorkoutPlan routine;
 
-  const RoutineCard({
-    super.key,
-    required this.routine,
-  });
+  const RoutineCard({super.key, required this.routine});
 
   @override
   Widget build(BuildContext context) {
-
-    final theme =
-        Theme.of(context);
-
-    final textTheme =
-        theme.textTheme;
-
-    return CustomCard(
-
-      child: Padding(
-
-        padding: const EdgeInsets.all(
-          AppSpacing.md,
-        ),
-
-        child: Column(
-
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-
-          children: [
-
-            Row(
-
-              children: [
-
-                Container(
-
-                  padding: const EdgeInsets.all(
-                    AppSpacing.sm,
-                  ),
-
-                  decoration: BoxDecoration(
-
-                    color: theme
-                        .colorScheme.primary
-                        .withOpacity(0.12),
-
-                    borderRadius:
-                        BorderRadius.circular(
-                      AppSpacing.radiusMd,
-                    ),
-                  ),
-
-                  child: Icon(
-                    Icons.fitness_center,
-                    color:
-                        theme.colorScheme.primary,
-                  ),
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.accentSoft,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                 ),
-
-                const SizedBox(
-                  width: AppSpacing.sm,
-                ),
-
-                Expanded(
-
-                  child: Column(
-
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-
-                    children: [
-
-                      Text(
-                        routine.name,
-                        style:
-                            textTheme.titleLarge,
-                      ),
-
-                      const SizedBox(
-                        height: AppSpacing.xs,
-                      ),
-
-                      Text(
-                        routine.description,
-                        style:
-                            textTheme.bodyMedium,
-                      ),
+                child: const Icon(Icons.fitness_center_outlined,
+                    color: AppColors.accent, size: 20),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(routine.name, style: AppTextStyles.titleLg),
+                    if (routine.description.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(routine.description, style: AppTextStyles.bodySm),
                     ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
-
-            const SizedBox(
-              height: AppSpacing.md,
-            ),
-
+              ),
+            ],
+          ),
+          if (routine.trainer.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
             Row(
-
               children: [
-
-                Icon(
-                  Icons.person,
-                  size: 18,
-                  color:
-                      theme.colorScheme.onSurface
-                          .withOpacity(0.6),
-                ),
-
-                const SizedBox(
-                  width: AppSpacing.xs,
-                ),
-
-                Text(
-                  'Coach: ${routine.trainer}',
-                  style:
-                      textTheme.bodyMedium,
-                ),
+                const Icon(Icons.person_outline,
+                    size: 16, color: AppColors.textMuted),
+                const SizedBox(width: 6),
+                Text('Coach ${routine.trainer}', style: AppTextStyles.label),
               ],
-            ),
-
-            const SizedBox(
-              height: AppSpacing.lg,
-            ),
-
-            ...routine.exercises.map(
-
-              (exercise) {
-
-                return ExerciseTile(
-                  exercise: exercise,
-                );
-              },
             ),
           ],
-        ),
+          const SizedBox(height: AppSpacing.sm),
+          ...routine.exercises.map((e) => ExerciseTile(exercise: e)),
+        ],
       ),
     );
   }

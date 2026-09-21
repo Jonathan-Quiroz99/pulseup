@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_spacing.dart';
+import '../../widgets/ui/app_scaffold.dart';
+import '../../widgets/ui/empty_state.dart';
 
 import '../auth/user_session.dart';
 
@@ -53,11 +55,11 @@ class _RoutinesScreenState
       return;
     }
 
-    try {
+    setState(() {
+      _loading = true;
+    });
 
-      setState(() {
-        _loading = true;
-      });
+    try {
 
       final data =
           await _routinesService
@@ -79,60 +81,49 @@ class _RoutinesScreenState
 
     } finally {
 
-      if (!mounted) return;
-
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-
-    final textTheme =
-        Theme.of(context).textTheme;
-
     if (_loading) {
-
-      return const Center(
-        child:
-            CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_routines.isEmpty) {
-
-      return Center(
-
-        child: Text(
-          'No hay rutinas disponibles',
-          style:
-              textTheme.bodyLarge,
+      return const AppScaffold(
+        padding: EdgeInsets.zero,
+        child: EmptyState(
+          icon: Icons.fitness_center_outlined,
+          title: 'Sin rutinas asignadas',
+          message: 'Tu entrenador publicará aquí tu plan de entrenamiento.',
         ),
       );
     }
 
-    return ListView.separated(
-
-      padding: const EdgeInsets.all(
-        AppSpacing.md,
+    return AppScaffold(
+      padding: EdgeInsets.zero,
+      child: RefreshIndicator(
+        onRefresh: _loadRoutines,
+        child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screenX,
+            AppSpacing.md,
+            AppSpacing.screenX,
+            AppSpacing.navBarClearance,
+          ),
+          itemCount: _routines.length,
+          separatorBuilder: (_, _) =>
+              const SizedBox(height: AppSpacing.md),
+          itemBuilder: (context, index) =>
+              RoutineCard(routine: _routines[index]),
+        ),
       ),
-
-      itemCount: _routines.length,
-
-      separatorBuilder:
-          (_, __) => const SizedBox(
-        height: AppSpacing.md,
-      ),
-
-      itemBuilder: (context, index) {
-
-        return RoutineCard(
-          routine:
-              _routines[index],
-        );
-      },
     );
   }
 }

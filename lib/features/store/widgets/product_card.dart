@@ -1,6 +1,29 @@
 import 'package:flutter/material.dart';
-import '../models/product.dart';
+
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../widgets/ui/app_card.dart';
 import '../controllers/cart_controller.dart';
+import '../models/product.dart';
+
+/// Maps a category to an icon + tint so every card isn't the same badge.
+class _CategoryStyle {
+  final IconData icon;
+  final Color tint;
+  const _CategoryStyle(this.icon, this.tint);
+}
+
+const _categoryStyles = <String, _CategoryStyle>{
+  'Bebidas': _CategoryStyle(Icons.local_drink_outlined, AppColors.tintBlue),
+  'Suplementos':
+      _CategoryStyle(Icons.medication_outlined, AppColors.tintViolet),
+  'Frutas': _CategoryStyle(Icons.eco_outlined, AppColors.tintGreen),
+};
+
+_CategoryStyle _styleFor(String categoria) =>
+    _categoryStyles[categoria] ??
+    const _CategoryStyle(Icons.shopping_bag_outlined, AppColors.accent);
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -9,63 +32,63 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-
+    final style = _styleFor(product.categoria);
     final cart = CartController.instance;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: colors.primary.withOpacity(0.2),
-            child: Icon(Icons.fastfood, color: colors.primary),
-          ),
-
-          const SizedBox(width: 12),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.nombre,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                Text(
-                  product.descripcion,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-
-                const SizedBox(height: 6),
-
-                Text(
-                  "\$${product.precio}",
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: AppCard(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: style.tint.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              ),
+              child: Icon(style.icon, color: style.tint, size: 22),
             ),
-          ),
-
-          IconButton(
-            onPressed: () => cart.add(product),
-            icon: Icon(Icons.add_circle, color: colors.primary),
-          ),
-        ],
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.nombre,
+                    style: AppTextStyles.titleMd,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (product.descripcion.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      product.descripcion,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodySm,
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                  Text(
+                    '\$${product.precio.toStringAsFixed(0)}',
+                    style: AppTextStyles.statSm.copyWith(color: AppColors.accent),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            IconButton(
+              onPressed: () => cart.add(product),
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.accentSoft,
+                foregroundColor: AppColors.accent,
+              ),
+              icon: const Icon(Icons.add, size: 20),
+            ),
+          ],
+        ),
       ),
     );
   }

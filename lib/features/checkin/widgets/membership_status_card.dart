@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../widgets/ui/app_card.dart';
+import '../../../widgets/ui/status_badge.dart';
 
-class MembershipStatusCard
-    extends StatelessWidget {
-
+class MembershipStatusCard extends StatelessWidget {
   final String membership;
   final String status;
 
@@ -16,83 +18,22 @@ class MembershipStatusCard
 
   @override
   Widget build(BuildContext context) {
-
-    final theme =
-        Theme.of(context);
-
-    final textTheme =
-        theme.textTheme;
-
-    return Card(
-
-      child: Padding(
-
-        padding: const EdgeInsets.all(
-          AppSpacing.lg,
-        ),
-
-        child: Row(
-
-          children: [
-
-            Container(
-
-              padding: const EdgeInsets.all(
-                AppSpacing.md,
-              ),
-
-              decoration: BoxDecoration(
-
-                color: theme
-                    .colorScheme.primary
-                    .withOpacity(0.12),
-
-                borderRadius:
-                    BorderRadius.circular(
-                  AppSpacing.radiusLg,
-                ),
-              ),
-
-              child: Icon(
-                Icons.workspace_premium,
-                color:
-                    theme.colorScheme.primary,
-              ),
+    return AppCard(
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: AppColors.accentSoft,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
             ),
-
-            const SizedBox(
-              width: AppSpacing.md,
-            ),
-
-            Expanded(
-
-              child: Column(
-
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-
-                children: [
-
-                  Text(
-                    membership,
-                    style:
-                        textTheme.titleLarge,
-                  ),
-
-                  const SizedBox(
-                    height: AppSpacing.xs,
-                  ),
-
-                  Text(
-                    status,
-                    style:
-                        textTheme.bodyLarge,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+            child: const Icon(Icons.workspace_premium_outlined,
+                color: AppColors.accent, size: 20),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: Text(membership, style: AppTextStyles.titleMd)),
+          StatusBadge.fromEstado(status),
+        ],
       ),
     );
   }

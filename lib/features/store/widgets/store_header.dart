@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+
 class StoreHeader extends StatelessWidget {
   final String title;
 
@@ -7,25 +10,14 @@ class StoreHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: theme.colorScheme.primary,
-            child: const Icon(Icons.store, color: Colors.black),
-          ),
-
-          const SizedBox(width: 12),
-
-          Text(
-            title,
-            style: theme.textTheme.titleLarge,
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenX,
+        AppSpacing.sm,
+        AppSpacing.screenX,
+        AppSpacing.md,
       ),
+      child: Text(title, style: AppTextStyles.displayMd),
     );
   }
 }

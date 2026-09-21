@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../core/navigation/app_screen.dart';
+import '../../core/theme/app_colors.dart';
 
 import '../../widgets/app_drawer.dart';
+import '../../widgets/app_nav_bar.dart';
 
 import '../auth/user_session.dart';
 
 import '../billing/billing_screen.dart';
 import '../checkin/checkin_screen.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../nutrition/nutrition_screen.dart';
 import '../routines/routines_screen.dart';
 import '../store/store_screen.dart';
 import '../tracking/tracking_screen.dart';
@@ -43,8 +46,11 @@ class _HomeScreenState extends State<HomeScreen> {
         return 3;
       case AppScreen.checkin:
         return 4;
+      case AppScreen.nutrition:
       case AppScreen.billing:
-        return 2;
+        // No están en la barra inferior (se abren desde el drawer): no
+        // resaltar "Inicio" como si lo estuvieran.
+        return -1;
     }
   }
 
@@ -59,6 +65,9 @@ class _HomeScreenState extends State<HomeScreen> {
       case AppScreen.tracking:
         return const TrackingScreen();
 
+      case AppScreen.nutrition:
+        return const NutritionScreen();
+
       case AppScreen.store:
         return const StoreScreen();
 
@@ -68,6 +77,16 @@ class _HomeScreenState extends State<HomeScreen> {
       case AppScreen.billing:
         return const BillingScreen();
     }
+  }
+
+  /// First name, title-cased — the backend stores some names all-caps.
+  String _greetingName() {
+    final raw = (UserSession.firstName ??
+            UserSession.currentUser?['nombre'] as String? ??
+            'Usuario')
+        .trim();
+    final first = raw.isEmpty ? 'Usuario' : raw.split(' ').first;
+    return first[0].toUpperCase() + first.substring(1).toLowerCase();
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
@@ -88,20 +107,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(width: 10),
 
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'PulseUp',
-                    style: textTheme.bodySmall,
-                  ),
-
-                  Text(
-                    'Hola, ${UserSession.currentUser?['nombre'] ?? 'Usuario'} 👋',
-                    style: textTheme.titleLarge,
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'PULSEUP',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: AppColors.textMuted,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Hola, ${_greetingName()}',
+                      style: textTheme.titleLarge,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -125,6 +151,12 @@ class _HomeScreenState extends State<HomeScreen> {
       case AppScreen.tracking:
         return AppBar(
           title: const Text('Progreso'),
+          actions: [_drawerButton()],
+        );
+
+      case AppScreen.nutrition:
+        return AppBar(
+          title: const Text('Nutrición'),
           actions: [_drawerButton()],
         );
 
@@ -161,6 +193,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  static const _navItems = [
+    AppNavItem(icon: Icons.fitness_center, label: 'Rutinas'),
+    AppNavItem(icon: Icons.show_chart, label: 'Progreso'),
+    AppNavItem(icon: Icons.home, label: 'Inicio'),
+    AppNavItem(icon: Icons.storefront, label: 'Tienda'),
+    AppNavItem(icon: Icons.qr_code, label: 'Check-In'),
+  ];
+
   void _onBottomNavTap(int index) {
     switch (index) {
       case 0:
@@ -185,12 +225,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: _currentScreen == AppScreen.dashboard,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 
         _changeTab(AppScreen.dashboard);
       },
       child: Scaffold(
+        extendBody: true,
+
         appBar: _buildAppBar(context),
 
         endDrawer: AppDrawer(
@@ -200,34 +242,15 @@ class _HomeScreenState extends State<HomeScreen> {
         endDrawerEnableOpenDragGesture: true,
         drawerEdgeDragWidth: 32,
 
-        body: _buildScreen(),
+        body: ColoredBox(
+          color: AppColors.bg,
+          child: _buildScreen(),
+        ),
 
-        bottomNavigationBar: BottomNavigationBar(
+        bottomNavigationBar: AppNavBar(
+          items: _navItems,
           currentIndex: _getBottomNavIndex(),
           onTap: _onBottomNavTap,
-          type: BottomNavigationBarType.fixed,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.fitness_center),
-              label: 'Rutinas',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.show_chart),
-              label: 'Progreso',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Inicio',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.storefront),
-              label: 'Tienda',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code),
-              label: 'Check-In',
-            ),
-          ],
         ),
       ),
     );

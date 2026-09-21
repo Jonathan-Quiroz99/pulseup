@@ -1,82 +1,33 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../widgets/ui/status_badge.dart';
 
-class DashboardHeader
-    extends StatelessWidget {
+/// Thin strip under the app bar: current plan + live membership status.
+class DashboardHeader extends StatelessWidget {
+  final String? membership;
+  final String? status;
 
-  final String name;
-
-  const DashboardHeader({
-    super.key,
-    required this.name,
-  });
+  const DashboardHeader({super.key, this.membership, this.status});
 
   @override
   Widget build(BuildContext context) {
-
-    final theme =
-        Theme.of(context);
-
-    final textTheme =
-        theme.textTheme;
+    final plan = (membership ?? '').isEmpty ? 'Sin plan' : 'Plan $membership';
 
     return Row(
-
       children: [
-
+        Icon(Icons.workspace_premium_outlined,
+            size: 18, color: AppColors.textMuted),
+        const SizedBox(width: AppSpacing.sm),
         Expanded(
-
-          child: Column(
-
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-
-            children: [
-
-              Text(
-                'Bienvenido 👋',
-                style:
-                    textTheme.bodyMedium,
-              ),
-
-              const SizedBox(
-                height: AppSpacing.xs,
-              ),
-
-              Text(
-                name,
-                style:
-                    textTheme.headlineLarge,
-              ),
-            ],
+          child: Text(
+            plan,
+            style: AppTextStyles.label.copyWith(color: AppColors.textSecondary),
           ),
         ),
-
-        Container(
-
-          padding: const EdgeInsets.all(
-            AppSpacing.md,
-          ),
-
-          decoration: BoxDecoration(
-
-            color: theme
-                .colorScheme.primary
-                .withOpacity(0.12),
-
-            borderRadius:
-                BorderRadius.circular(
-              AppSpacing.radiusMd,
-            ),
-          ),
-
-          child: Icon(
-            Icons.fitness_center,
-            color:
-                theme.colorScheme.primary,
-          ),
-        ),
+        StatusBadge.fromEstado(status),
       ],
     );
   }

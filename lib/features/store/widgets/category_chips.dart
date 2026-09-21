@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_spacing.dart';
+import '../../../widgets/ui/app_chip.dart';
+
 class CategoryChips extends StatelessWidget {
   final List<String> categories;
   final String selected;
@@ -14,41 +17,18 @@ class CategoryChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-
     return SizedBox(
-      height: 45,
-      child: ListView.builder(
+      height: 40,
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenX),
         itemCount: categories.length,
-        itemBuilder: (_, i) {
-          final cat = categories[i];
-          final isSelected = cat == selected;
-
-          return GestureDetector(
-            onTap: () => onSelect(cat),
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? colors.primary
-                    : colors.surface,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                cat,
-                style: TextStyle(
-                  color: isSelected
-                      ? Colors.black
-                      : colors.onSurface,
-                ),
-              ),
-            ),
-          );
-        },
+        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+        itemBuilder: (_, i) => AppChip(
+          label: categories[i],
+          selected: categories[i] == selected,
+          onTap: () => onSelect(categories[i]),
+        ),
       ),
     );
   }

@@ -1,3 +1,5 @@
+import '../../../core/utils/json_parse.dart';
+
 class Product {
   final String id;
   final String nombre;
@@ -16,23 +18,16 @@ class Product {
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
-    final rawPrice = json['precio'].toString();
-
-    final cleanPrice = rawPrice
-        .replaceAll('\$', '')
-        .replaceAll(',', '')
-        .trim();
-
     return Product(
-      id: json['id'],
-      nombre: json['nombre'],
-      categoria: json['categoria'],
-      precio: double.tryParse(cleanPrice) ?? 0,
-      descripcion: json['descripcion'] ?? '',
-      stock: json['stock'] ?? 0,
+      id: asString(json['id']),
+      nombre: asString(json['nombre']),
+      categoria: asString(json['categoria']),
+      // El backend manda el precio como texto tipo "$1,200".
+      precio: asMoney(json['precio']),
+      descripcion: asString(json['descripcion']),
+      stock: asInt(json['stock']),
     );
   }
 
-  // SOLO ESTO (opcional pero útil)
   double get priceValue => precio;
 }

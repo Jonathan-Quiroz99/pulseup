@@ -1,41 +1,41 @@
 {
   "project_info": {
-    "project_number": "118869026911",
-    "project_id": "pulseup-39e5d",
-    "storage_bucket": "pulseup-39e5d.firebasestorage.app"
+    "project_number": "581568965866",
+    "project_id": "pulseup-1256d",
+    "storage_bucket": "pulseup-1256d.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:118869026911:android:7dfd5390d6e2c997cf53ea",
+        "mobilesdk_app_id": "1:581568965866:android:6cd0ff877db039bbbebb93",
         "android_client_info": {
           "package_name": "com.pulseup.app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "118869026911-nks1bk1bbpfm1mm51t8qs9pc7itdgier.apps.googleusercontent.com",
+          "client_id": "581568965866-rkqenivvkse4gfk3r729jc8sm2fjae63.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.pulseup.app",
-            "certificate_hash": "b901a3420d23273aa6a33a2f6b472518071dda1d"
+            "certificate_hash": "4e286f43fea8f7d2c7e9746e58fa205ba74e96b9"
           }
         },
         {
-          "client_id": "118869026911-7o2emhtca6vqlftlf30do7kcdp6vhqtb.apps.googleusercontent.com",
+          "client_id": "581568965866-j778dj26a5l69i3p7kdddb7kai0evsc2.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyAgNUC4WxJunBRpXe5hzuEs8wtx0oeqXf4"
+          "current_key": "AIzaSyBN4prdBNDurlno3WlYhO3n7pG8wPhY4Cs"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "118869026911-7o2emhtca6vqlftlf30do7kcdp6vhqtb.apps.googleusercontent.com",
+              "client_id": "581568965866-j778dj26a5l69i3p7kdddb7kai0evsc2.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

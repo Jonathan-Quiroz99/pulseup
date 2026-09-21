@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../checkout_screen.dart';
 import '../controllers/cart_controller.dart';
-import '../checkout_screen.dart'; // Ajusta la ruta según tu estructura
 
 class CartBar extends StatelessWidget {
   const CartBar({super.key});
@@ -12,54 +16,61 @@ class CartBar extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: cart.items,
       builder: (context, value, _) {
-        if (value.isEmpty) return const SizedBox();
+        if (value.isEmpty) return const SizedBox.shrink();
 
         return Container(
-          padding: const EdgeInsets.all(14),
-          decoration: const BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          // Bottom margin clears HomeScreen's floating nav pill.
+          margin: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            0,
+            AppSpacing.lg,
+            AppSpacing.navBarClearance,
+          ),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceHigh,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            border: Border.all(color: AppColors.hairline),
+            boxShadow: const [
+              BoxShadow(
+                color: AppColors.ambientShadow,
+                blurRadius: 20,
+                offset: Offset(0, 8),
+              ),
+            ],
           ),
           child: Row(
             children: [
-              // Items count
-              Text(
-                "${cart.totalItems} items",
-                style: const TextStyle(color: Colors.white),
-              ),
-              
-              const SizedBox(width: 12),
-              
-              // Total price (expanded to fill space)
-              Expanded(
-                child: Text(
-                  "\$${cart.total.toStringAsFixed(2)}",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-              
-              // Checkout button with proper constraints
-              ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minWidth: 80,
-                  maxWidth: 120,
-                ),
-                child: SizedBox(
-                  height: 40,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // 🔥 SOLUCIÓN: Usar push en lugar de pushNamed
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CheckoutScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text("Checkout"),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${cart.totalItems} artículo${cart.totalItems == 1 ? '' : 's'}',
+                    style: AppTextStyles.label,
                   ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '\$${cart.total.toStringAsFixed(2)}',
+                    style: AppTextStyles.statSm,
+                  ),
+                ],
+              ),
+              const Spacer(),
+              FilledButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CheckoutScreen()),
                 ),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                ),
+                child: const Text('Ver carrito'),
               ),
             ],
           ),

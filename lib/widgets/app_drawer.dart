@@ -1,301 +1,122 @@
 import 'package:flutter/material.dart';
 
 import '../core/navigation/app_screen.dart';
+import '../core/theme/app_colors.dart';
 import '../core/theme/app_spacing.dart';
+import '../core/theme/app_text_styles.dart';
 
 import '../features/auth/user_session.dart';
 import '../features/auth/login_screen.dart';
+import 'ui/status_badge.dart';
 
-class AppDrawer
-    extends StatelessWidget {
+class AppDrawer extends StatelessWidget {
+  final Function(AppScreen) onNavigate;
 
-  final Function(AppScreen)
-      onNavigate;
-
-  const AppDrawer({
-    super.key,
-    required this.onNavigate,
-  });
+  const AppDrawer({super.key, required this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
-
-    final theme =
-        Theme.of(context);
-
-    final textTheme =
-        theme.textTheme;
-
     return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _header(),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                children: [
+                  _item(context, Icons.home_outlined, 'Inicio',
+                      AppScreen.dashboard),
+                  _item(context, Icons.fitness_center_outlined, 'Rutinas',
+                      AppScreen.routines),
+                  _item(context, Icons.show_chart_outlined, 'Progreso',
+                      AppScreen.tracking),
+                  _item(context, Icons.restaurant_outlined, 'Nutrición',
+                      AppScreen.nutrition),
+                  _item(context, Icons.storefront_outlined, 'Tienda',
+                      AppScreen.store),
+                  _item(context, Icons.qr_code_2_outlined, 'Check-In',
+                      AppScreen.checkin),
+                  const Divider(),
+                  _item(context, Icons.receipt_long_outlined,
+                      'Estado de cuenta', AppScreen.billing),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.logout, color: AppColors.error),
+              title: Text('Cerrar sesión',
+                  style: AppTextStyles.body.copyWith(color: AppColors.error)),
+              onTap: () async {
+                Navigator.pop(context);
+                await UserSession.logout();
+                if (!context.mounted) return;
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              },
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ),
+      ),
+    );
+  }
 
-      child: ListView(
-
-        padding: EdgeInsets.zero,
-
+  Widget _header() {
+    final image = UserSession.profileImage;
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Row(
         children: [
-
-          UserAccountsDrawerHeader(
-
-            decoration: BoxDecoration(
-              color:
-                  theme.colorScheme.surface,
-            ),
-
-            accountName: Text(
-
-              UserSession.currentUser?[
-                      'nombre'] ??
-                  'Usuario',
-
-              style: textTheme.titleMedium
-                  ?.copyWith(
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
-
-            accountEmail: Text(
-
-              '${UserSession.membership ?? 'Membresía'} • ${UserSession.membershipStatus ?? 'Activa'}',
-
-              style: textTheme.bodyMedium
-                  ?.copyWith(
-                color: theme
-                    .colorScheme.primary,
-              ),
-            ),
-
-            currentAccountPictureSize:
-                const Size(72, 72),
-                
-            currentAccountPicture:
-                CircleAvatar(
-
-              backgroundColor:
-                  theme.colorScheme.primary,
-
-              backgroundImage:
-                  UserSession.profileImage != null
-                      ? NetworkImage(
-                          UserSession.profileImage!,
-                        )
-                      : null,
-
-              child:
-                  UserSession.profileImage == null
-
-                      ? Icon(
-                          Icons.person,
-                          color: theme
-                              .colorScheme.onPrimary,
-                        )
-
-                      : null,
-            ),
+          CircleAvatar(
+            radius: 26,
+            backgroundColor: AppColors.accentSoft,
+            backgroundImage: image != null ? NetworkImage(image) : null,
+            child: image == null
+                ? const Icon(Icons.person_outline, color: AppColors.accent)
+                : null,
           ),
-
-          _drawerItem(
-
-            context: context,
-
-            icon: Icons.home,
-
-            title: 'Inicio',
-
-            onTap: () {
-
-              Navigator.pop(context);
-
-              onNavigate(
-                AppScreen.dashboard,
-              );
-            },
-          ),
-
-          _drawerItem(
-
-            context: context,
-
-            icon: Icons.fitness_center,
-
-            title: 'Rutinas',
-
-            onTap: () {
-
-              Navigator.pop(context);
-
-              onNavigate(
-                AppScreen.routines,
-              );
-            },
-          ),
-
-          _drawerItem(
-
-            context: context,
-
-            icon: Icons.show_chart,
-
-            title: 'Progreso',
-
-            onTap: () {
-
-              Navigator.pop(context);
-
-              onNavigate(
-                AppScreen.tracking,
-              );
-            },
-          ),
-
-          _drawerItem(
-
-            context: context,
-
-            icon: Icons.storefront,
-
-            title: 'Tienda',
-
-            onTap: () {
-
-              Navigator.pop(context);
-
-              onNavigate(
-                AppScreen.store,
-              );
-            },
-          ),
-
-          _drawerItem(
-
-            context: context,
-
-            icon: Icons.qr_code,
-
-            title: 'Check-In',
-
-            onTap: () {
-
-              Navigator.pop(context);
-
-              onNavigate(
-                AppScreen.checkin,
-              );
-            },
-          ),
-
-          const Divider(),
-
-          _drawerItem(
-
-            context: context,
-
-            icon: Icons.credit_card,
-
-            title: 'Estado de cuenta',
-
-            onTap: () {
-
-              Navigator.pop(context);
-
-              onNavigate(
-                AppScreen.billing,
-              );
-            },
-          ),
-
-          _drawerItem(
-
-            context: context,
-
-            icon: Icons.payment,
-
-            title: 'Métodos de pago',
-
-            onTap: () {
-
-              Navigator.pop(context);
-            },
-          ),
-
-          const Divider(),
-
-          _drawerItem(
-
-            context: context,
-
-            icon: Icons.settings,
-
-            title: 'Configuración',
-
-            onTap: () {
-
-              Navigator.pop(context);
-            },
-          ),
-
-          _drawerItem(
-
-            context: context,
-
-            icon: Icons.logout,
-
-            title: 'Cerrar sesión',
-
-            onTap: () {
-
-              Navigator.pop(context);
-
-              UserSession.logout();
-
-              Navigator.of(context)
-                  .pushAndRemoveUntil(
-
-                MaterialPageRoute(
-
-                  builder: (_) =>
-                      const LoginScreen(),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  UserSession.fullName.isEmpty
+                      ? 'Usuario'
+                      : UserSession.fullName,
+                  style: AppTextStyles.titleMd,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-
-                (route) => false,
-              );
-            },
+                const SizedBox(height: 6),
+                StatusBadge.fromEstado(UserSession.membershipStatus),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _drawerItem({
-
-    required BuildContext context,
-
-    required IconData icon,
-
-    required String title,
-
-    required VoidCallback onTap,
-  }) {
-
-    final theme =
-        Theme.of(context);
-
+  Widget _item(
+    BuildContext context,
+    IconData icon,
+    String label,
+    AppScreen screen,
+  ) {
     return ListTile(
-
-      leading: Icon(
-        icon,
-        color:
-            theme.colorScheme.primary,
-      ),
-
-      title: Text(title),
-
-      contentPadding:
-          const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-      ),
-
-      onTap: onTap,
+      leading: Icon(icon, color: AppColors.textSecondary),
+      title: Text(label, style: AppTextStyles.body),
+      onTap: () {
+        Navigator.pop(context);
+        onNavigate(screen);
+      },
     );
   }
 }

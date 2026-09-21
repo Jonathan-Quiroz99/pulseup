@@ -1,3 +1,5 @@
+import '../../../core/utils/json_parse.dart';
+
 class BodyMeasurement {
   final String id;
   final String memberId;
@@ -5,12 +7,11 @@ class BodyMeasurement {
   final double weightKg;
   final double? bodyFat;
   final double? muscle;
-  final double waist;
+  final double? waist;
   final double? hip;
-  final double chest;
-  final double arm;
+  final double? chest;
+  final double? arm;
   final double? heightCm;
-  final double? imc;
   final String notes;
 
   BodyMeasurement({
@@ -20,32 +21,28 @@ class BodyMeasurement {
     required this.weightKg,
     this.bodyFat,
     this.muscle,
-    required this.waist,
+    this.waist,
     this.hip,
-    required this.chest,
-    required this.arm,
+    this.chest,
+    this.arm,
     this.heightCm,
-    this.imc,
     required this.notes,
   });
 
   factory BodyMeasurement.fromJson(Map<String, dynamic> json) {
-    print('Parsing measurement: $json'); // Debug
-    
     return BodyMeasurement(
-      id: json['id']?.toString() ?? '',
-      memberId: json['member_id']?.toString() ?? '',
-      date: json['fecha']?.toString() ?? '',
-      weightKg: (json['peso_kg'] ?? 0).toDouble(),
-      bodyFat: json['grasa_pct'] != null ? (json['grasa_pct'] as num).toDouble() : null,
-      muscle: json['musculo_pct'] != null ? (json['musculo_pct'] as num).toDouble() : null,
-      waist: (json['cintura_cm'] ?? 0).toDouble(),
-      hip: json['cadera_cm'] != null ? (json['cadera_cm'] as num).toDouble() : null,
-      chest: (json['pecho_cm'] ?? 0).toDouble(),
-      arm: (json['brazo_cm'] ?? 0).toDouble(),
-      heightCm: json['altura_cm'] != null ? (json['altura_cm'] as num).toDouble() : null,
-      imc: json['imc'] != null ? (json['imc'] as num).toDouble() : null, // IMC calculado por BD
-      notes: json['notas']?.toString() ?? '',
+      id: asString(json['id']),
+      memberId: asString(json['member_id']),
+      date: asString(json['fecha']),
+      weightKg: asDouble(json['peso_kg']),
+      bodyFat: asDoubleOrNull(json['grasa_pct']),
+      muscle: asDoubleOrNull(json['musculo_pct']),
+      waist: asDoubleOrNull(json['cintura_cm']),
+      hip: asDoubleOrNull(json['cadera_cm']),
+      chest: asDoubleOrNull(json['pecho_cm']),
+      arm: asDoubleOrNull(json['brazo_cm']),
+      heightCm: asDoubleOrNull(json['altura_cm']),
+      notes: asString(json['notas']),
     );
   }
 }

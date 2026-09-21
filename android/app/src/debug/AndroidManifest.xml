@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Solo en debug: permite HTTP en claro (localhost) para probar contra un
+         backend local via `adb reverse`. Los builds release NO llevan esto. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

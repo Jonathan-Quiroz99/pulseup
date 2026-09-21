@@ -4,6 +4,10 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>PulseUp usa la cámara para tomar una foto de tu comida y estimar sus calorías y macronutrientes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>PulseUp accede a tus fotos para analizar imágenes de tus comidas.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

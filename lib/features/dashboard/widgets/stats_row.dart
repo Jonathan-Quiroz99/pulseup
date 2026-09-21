@@ -1,109 +1,51 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_spacing.dart';
-
+import '../../../widgets/ui/stat_tile.dart';
 import '../models/dashboard_stats.dart';
 
-class StatsRow
-    extends StatelessWidget {
-
+class StatsRow extends StatelessWidget {
   final DashboardStats? stats;
 
-  const StatsRow({
-    super.key,
-    required this.stats,
-  });
+  const StatsRow({super.key, required this.stats});
 
-  @override
-  Widget build(BuildContext context) {
-
-    return Row(
-
-      children: [
-
-        _StatsCard(
-          title: 'Peso',
-          value: stats != null
-              ? '${stats!.weight}kg'
-              : '--',
-        ),
-
-        const SizedBox(
-          width: AppSpacing.sm,
-        ),
-
-        _StatsCard(
-          title: 'Grasa',
-          value: stats != null
-              ? '${stats!.bodyFat}%'
-              : '--',
-        ),
-
-        const SizedBox(
-          width: AppSpacing.sm,
-        ),
-
-        _StatsCard(
-          title: 'Músculo',
-          value: stats != null
-              ? '${stats!.muscle}%'
-              : '--',
-        ),
-      ],
-    );
+  static String? _fmt(double? value, String suffix) {
+    if (value == null) return null;
+    return '${value.toStringAsFixed(1)}$suffix';
   }
-}
-
-class _StatsCard
-    extends StatelessWidget {
-
-  final String title;
-  final String value;
-
-  const _StatsCard({
-    required this.title,
-    required this.value,
-  });
 
   @override
   Widget build(BuildContext context) {
+    final stats = this.stats;
 
-    final textTheme =
-        Theme.of(context).textTheme;
-
-    return Expanded(
-
-      child: Card(
-
-        child: Padding(
-
-          padding:
-              const EdgeInsets.symmetric(
-            vertical: AppSpacing.lg,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: StatTile(
+              label: 'Peso',
+              value: stats != null ? _fmt(stats.weight, ' kg') : null,
+              icon: Icons.monitor_weight_outlined,
+            ),
           ),
-
-          child: Column(
-
-            children: [
-
-              Text(
-                value,
-                style:
-                    textTheme.titleLarge,
-              ),
-
-              const SizedBox(
-                height: AppSpacing.xs,
-              ),
-
-              Text(
-                title,
-                style:
-                    textTheme.bodyMedium,
-              ),
-            ],
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: StatTile(
+              label: 'Grasa',
+              value: _fmt(stats?.bodyFat, '%'),
+              icon: Icons.local_fire_department_outlined,
+            ),
           ),
-        ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: StatTile(
+              label: 'Músculo',
+              value: _fmt(stats?.muscle, '%'),
+              icon: Icons.fitness_center_outlined,
+            ),
+          ),
+        ],
       ),
     );
   }

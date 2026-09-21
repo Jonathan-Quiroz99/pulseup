@@ -1,8 +1,5 @@
-import '../../routines/models/workout_plan.dart';
 import '../../routines/services/routines_service.dart';
-import '../../tracking/models/body_measurement.dart';
 import '../../tracking/services/tracking_service.dart';
-import '../../checkin/models/checkin_record.dart';
 import '../../checkin/services/checkin_service.dart';
 import '../models/dashboard_stats.dart';
 import '../models/dashboard_workout.dart';
@@ -35,13 +32,20 @@ class DashboardService {
 
     return DashboardStats(
       weight: latest.weightKg,
-      bodyFat: latest.bodyFat,  // Mantiene el valor null si existe
-      muscle: latest.muscle,    // Mantiene el valor null si existe
+      bodyFat: latest.bodyFat,
+      muscle: latest.muscle,
     );
   }
 
+  /// Check-ins in the last 7 days (rolling window from now), not the
+  /// all-time total. Records whose `fecha` doesn't parse are skipped.
   Future<int> fetchWeeklyCheckins(String token) async {
     final checkins = await CheckinService().fetchMyCheckins(token);
-    return checkins.length;
+    final cutoff = DateTime.now().subtract(const Duration(days: 7));
+
+    return checkins.where((c) {
+      final date = c.date;
+      return date != null && date.isAfter(cutoff);
+    }).length;
   }
 }

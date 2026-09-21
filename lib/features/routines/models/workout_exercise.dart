@@ -1,3 +1,5 @@
+import '../../../core/utils/json_parse.dart';
+
 class WorkoutExercise {
   final String id;
   final String name;
@@ -15,16 +17,14 @@ class WorkoutExercise {
     required this.rest,
   });
 
-  factory WorkoutExercise.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory WorkoutExercise.fromJson(Map<String, dynamic> json) {
     return WorkoutExercise(
-      id: json['id'],
-      name: json['nombre'],
-      muscleGroup: json['grupo_muscular'] ?? '',
-      sets: json['series'],
-      reps: json['repeticiones'],
-      rest: json['descanso_seg'],
+      id: asString(json['id']),
+      name: asString(json['nombre']),
+      muscleGroup: asString(json['grupo_muscular']),
+      sets: asInt(json['series'], fallback: 3),
+      reps: asString(json['repeticiones'], fallback: '10'),
+      rest: asInt(json['descanso_seg'], fallback: 60),
     );
   }
 }
