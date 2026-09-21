@@ -3,14 +3,14 @@
          este build de release a la IP de LAN de la PC en vez de a Render
          (ver docs/demo-sin-internet.md en el repo de LED GYM / Proyecto
          Integrador). Android bloquea trafico HTTP por defecto desde Android 9
-         (API 28+) salvo que se declare explicitamente -- src/debug ya lo tenia,
+         (API 28+) salvo que se declare explicitamente; src/debug ya lo tenia,
          pero src/release (el build usado para el APK del demo) no, y sin esto
          la app hubiera rechazado la conexion al backend local en silencio.
          El uso normal de la app sigue siendo HTTPS contra Render; esto solo
          habilita el caso de LAN local. -->
     <!-- Ya la trae el plugin google_sign_in via su propio manifest (se fusiona
          igual en release), pero se declara explicita aqui para no depender de
-         eso -- sin INTERNET la app no puede hablar con NINGUN backend. -->
+         eso; sin INTERNET la app no puede hablar con NINGUN backend. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application android:usesCleartextTraffic="true" />
 </manifest>
