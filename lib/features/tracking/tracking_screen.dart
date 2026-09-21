@@ -238,19 +238,37 @@ Future<void> _showEditHeightDialog() async {
   final controller = TextEditingController(
     text: _userHeight?.toStringAsFixed(0) ?? '',
   );
+  final formKey = GlobalKey<FormState>();
 
+  // Antes esto era un TextField sin Form ni validator: se podia guardar
+  // "5" cm o "9999" cm (o texto, que simplemente no hacia nada, sin
+  // ningun mensaje). Esa altura se usa para calcular IMC/grasa corporal
+  // (BodyCalculationsService, que no acota el resultado) — una altura
+  // absurda produce un IMC absurdo en la tarjeta de Progreso. Rango
+  // igual al que ya usa el backend para nutricion (120-230 cm).
   final newHeight = await showDialog<double>(
     context: context,
     builder: (dialogContext) {
       return AlertDialog(
         title: const Text('Altura'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Altura (cm)',
-            hintText: 'Ej: 175',
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Altura (cm)',
+              hintText: 'Ej: 175',
+            ),
+            validator: (value) {
+              final parsed = double.tryParse((value ?? '').trim());
+              if (parsed == null) return 'Ingresa un numero valido';
+              if (parsed < 120 || parsed > 230) {
+                return 'Debe estar entre 120 y 230 cm';
+              }
+              return null;
+            },
           ),
         ),
         actions: [
@@ -260,7 +278,8 @@ Future<void> _showEditHeightDialog() async {
           ),
           TextButton(
             onPressed: () {
-              final value = double.tryParse(controller.text);
+              if (!(formKey.currentState?.validate() ?? false)) return;
+              final value = double.tryParse(controller.text.trim());
               Navigator.of(dialogContext).pop(value);
             },
             child: const Text('Guardar'),
@@ -270,7 +289,7 @@ Future<void> _showEditHeightDialog() async {
     },
   );
 
-  if (newHeight == null || newHeight <= 0) return;
+  if (newHeight == null) return;
   await _saveUserHeight(newHeight);
 }
 

@@ -321,6 +321,8 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                   Icons.monitor_weight,
                                   true,
                                   'Ej: 75.5',
+                                  min: 30,
+                                  max: 300,
                                 ),
                                 const SizedBox(height: 12),
                                 if (widget.existingHeight == null)
@@ -330,6 +332,8 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                     Icons.height,
                                     true,
                                     'Ej: 175',
+                                    min: 120,
+                                    max: 230,
                                   ),
                                 if (widget.existingHeight == null)
                                   const SizedBox(height: 12),
@@ -340,6 +344,8 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                     Icons.cake,
                                     false,
                                     'Opcional — para estimar sin cintura',
+                                    min: 10,
+                                    max: 100,
                                   ),
                               ],
                             ),
@@ -375,6 +381,8 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                   Icons.straighten,
                                   false,
                                   'Opcional — medir a la altura del ombligo',
+                                  min: 40,
+                                  max: 200,
                                 ),
                                 const SizedBox(height: 12),
                                 _buildTextField(
@@ -383,6 +391,8 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                   Icons.fitness_center,
                                   false,
                                   'Opcional — medir a la altura del pecho',
+                                  min: 40,
+                                  max: 200,
                                 ),
                                 const SizedBox(height: 12),
                                 _buildTextField(
@@ -391,6 +401,8 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
                                   Icons.accessibility,
                                   false,
                                   'Opcional — medir el bíceps flexionado',
+                                  min: 10,
+                                  max: 100,
                                 ),
                               ],
                             ),
@@ -589,8 +601,16 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
     TextEditingController controller,
     IconData icon,
     bool required,
-    String hint,
-  ) {
+    String hint, {
+    // Antes era un solo tope de cordura (500) igual para peso, altura,
+    // cintura, pecho y brazo — un valor tecnicamente "menor a 500" pero sin
+    // sentido para ese campo (ej. altura en metros: "1.75") pasaba la
+    // validacion sin aviso y producia un IMC/grasa corporal disparatado
+    // (BodyCalculationsService.calculateBMI no acota el resultado). Ahora
+    // cada campo tiene su propio rango realista.
+    double min = 0.01,
+    double max = 500,
+  }) {
     return TextFormField(
       controller: controller,
       keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -606,13 +626,11 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
         }
         if (value != null && value.isNotEmpty) {
           final number = double.tryParse(value.replaceAll(',', '.'));
-          if (number == null || number <= 0) {
+          if (number == null) {
             return 'Ingrese un valor válido';
           }
-          // Cota de cordura: peso en kg y circunferencias en cm caben de sobra
-          // por debajo de 500. Evita IMC absurdos por un typo (ej. "8600").
-          if (number > 500) {
-            return 'Ese valor parece demasiado alto';
+          if (number < min || number > max) {
+            return 'Debe estar entre ${min.toInt()} y ${max.toInt()}';
           }
         }
         return null;

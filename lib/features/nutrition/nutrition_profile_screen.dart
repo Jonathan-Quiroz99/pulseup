@@ -32,6 +32,17 @@ class _NutritionProfileScreenState extends State<NutritionProfileScreen> {
   final _height = TextEditingController();
   final _age = TextEditingController();
 
+  // Mismos rangos que backend/nutrition/calculator.py (MIN/MAX_*). Antes
+  // estos campos solo validaban "> 0": un peso de 9999 kg o una edad de 999
+  // años se guardaban tal cual (el backend los recortaba en silencio SOLO al
+  // calcular BMR/TDEE, sin avisar, y el preview de esta pantalla no aplicaba
+  // ese mismo recorte, asi que podia mostrar un numero distinto al que el
+  // backend calcularia despues). Ahora se valida el rango real antes de
+  // calcular el preview o guardar.
+  static const _minAge = 14, _maxAge = 100;
+  static const _minWeight = 30.0, _maxWeight = 300.0;
+  static const _minHeight = 120.0, _maxHeight = 230.0;
+
   late Sex _sex;
   late ActivityLevel _activity;
   late FitnessGoal _goal;
@@ -69,13 +80,30 @@ class _NutritionProfileScreenState extends State<NutritionProfileScreen> {
   double? _num(TextEditingController c) =>
       double.tryParse(c.text.replaceAll(',', '.').trim());
 
-  NutritionEstimate? get _preview {
+  String? _rangeError() {
     final w = _num(_weight);
     final h = _num(_height);
     final a = int.tryParse(_age.text.trim());
-    if (w == null || h == null || a == null || w <= 0 || h <= 0 || a <= 0) {
-      return null;
+    if (w == null || h == null || a == null) {
+      return 'Completa peso, altura y edad con valores válidos.';
     }
+    if (w < _minWeight || w > _maxWeight) {
+      return 'El peso debe estar entre ${_minWeight.toInt()} y ${_maxWeight.toInt()} kg.';
+    }
+    if (h < _minHeight || h > _maxHeight) {
+      return 'La altura debe estar entre ${_minHeight.toInt()} y ${_maxHeight.toInt()} cm.';
+    }
+    if (a < _minAge || a > _maxAge) {
+      return 'La edad debe estar entre $_minAge y $_maxAge años.';
+    }
+    return null;
+  }
+
+  NutritionEstimate? get _preview {
+    if (_rangeError() != null) return null;
+    final w = _num(_weight)!;
+    final h = _num(_height)!;
+    final a = int.tryParse(_age.text.trim())!;
     return NutritionCalculator.estimate(
       weightKg: w,
       heightCm: h,
@@ -87,13 +115,14 @@ class _NutritionProfileScreenState extends State<NutritionProfileScreen> {
   }
 
   Future<void> _save() async {
-    final w = _num(_weight);
-    final h = _num(_height);
-    final a = int.tryParse(_age.text.trim());
-    if (w == null || h == null || a == null || w <= 0 || h <= 0 || a <= 0) {
-      _snack('Completa peso, altura y edad con valores válidos.');
+    final rangeError = _rangeError();
+    if (rangeError != null) {
+      _snack(rangeError);
       return;
     }
+    final w = _num(_weight)!;
+    final h = _num(_height)!;
+    final a = int.tryParse(_age.text.trim())!;
 
     setState(() => _saving = true);
     try {
