@@ -7,7 +7,12 @@ class WorkoutPlan {
   final String name;
   final String description;
   final String trainer;
+  // "Activo" = la rutina actual; las anteriores quedan "Inactivo" cuando el
+  // gimnasio asigna una nueva desde el panel.
+  final String status;
   final List<WorkoutExercise> exercises;
+
+  bool get isActive => status == 'Activo';
 
   WorkoutPlan({
     required this.id,
@@ -15,6 +20,7 @@ class WorkoutPlan {
     required this.name,
     required this.description,
     required this.trainer,
+    this.status = 'Activo',
     required this.exercises,
   });
 
@@ -28,6 +34,7 @@ class WorkoutPlan {
       // campo "trainer"); si viniera vacio (plan sin entrenador asignado)
       // no mostramos el id crudo.
       trainer: asString(json['trainer_nombre']),
+      status: asString(json['estado'], fallback: 'Activo'),
       // El backend llama a la lista de ejercicios "ejercicios", no
       // "exercises" — con la llave equivocada esto siempre quedaba vacio.
       exercises: (json['ejercicios'] as List<dynamic>? ?? [])

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import 'backend_resolver.dart';
 import 'session_guard.dart';
 
 /// Timeout applied to every plain API call (login, dashboard, checkin,
@@ -25,6 +26,9 @@ String friendlyError(Object error) {
       error is http.ClientException ||
       error is HandshakeException ||
       error is TimeoutException) {
+    // Puede que la red haya cambiado (p. ej. Render bloqueado en la WiFi del
+    // lugar): se busca otro servidor en segundo plano para el reintento.
+    BackendResolver.resolveInBackground();
     return 'No pudimos conectar con el servidor. Revisa tu conexión a internet.';
   }
   var msg = error.toString();

@@ -12,9 +12,12 @@ void main() {
 
     await tester.pumpWidget(const MyApp());
 
-    // _StartupGate shows a loader until restoreSession() resolves.
+    // _StartupGate shows a loader until restoreSession() and the backend
+    // search resolve (the search is capped at 12 s).
     await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Buscando servidor…'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 13));
+    await tester.pump();
 
     expect(tester.takeException(), isNull);
     expect(find.text('Iniciar sesión'), findsOneWidget);

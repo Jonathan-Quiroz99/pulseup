@@ -106,22 +106,51 @@ class _RoutinesScreenState
       );
     }
 
+    // Cuando el gimnasio asigna una rutina nueva, la anterior queda
+    // "Inactivo": se muestra la actual y el historial va plegado abajo.
+    final current = _routines.where((r) => r.isActive).toList();
+    final previous = _routines.where((r) => !r.isActive).toList();
+
     return AppScaffold(
       padding: EdgeInsets.zero,
       child: RefreshIndicator(
         onRefresh: _loadRoutines,
-        child: ListView.separated(
+        child: ListView(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.screenX,
             AppSpacing.md,
             AppSpacing.screenX,
             AppSpacing.navBarClearance,
           ),
-          itemCount: _routines.length,
-          separatorBuilder: (_, _) =>
+          children: [
+            for (final routine in current) ...[
+              RoutineCard(routine: routine),
               const SizedBox(height: AppSpacing.md),
-          itemBuilder: (context, index) =>
-              RoutineCard(routine: _routines[index]),
+            ],
+            if (current.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(bottom: AppSpacing.md),
+                child: EmptyState(
+                  icon: Icons.fitness_center_outlined,
+                  title: 'Sin rutina actual',
+                  message: 'Pide a tu entrenador que te asigne una nueva.',
+                ),
+              ),
+            if (previous.isNotEmpty)
+              Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: Text('Rutinas anteriores (${previous.length})'),
+                  children: [
+                    for (final routine in previous) ...[
+                      RoutineCard(routine: routine),
+                      const SizedBox(height: AppSpacing.md),
+                    ],
+                  ],
+                ),
+              ),
+          ],
         ),
       ),
     );

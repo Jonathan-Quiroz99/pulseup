@@ -7,6 +7,9 @@ class WorkoutExercise {
   final int sets;
   final String reps;
   final int rest;
+  /// Sesión a la que pertenece ("Dia 1 — Torso"); vacío en rutinas viejas.
+  final String day;
+  final String notes;
 
   WorkoutExercise({
     required this.id,
@@ -15,6 +18,8 @@ class WorkoutExercise {
     required this.sets,
     required this.reps,
     required this.rest,
+    this.day = '',
+    this.notes = '',
   });
 
   factory WorkoutExercise.fromJson(Map<String, dynamic> json) {
@@ -25,6 +30,8 @@ class WorkoutExercise {
       sets: asInt(json['series'], fallback: 3),
       reps: asString(json['repeticiones'], fallback: '10'),
       rest: asInt(json['descanso_seg'], fallback: 60),
+      day: asString(json['dia']),
+      notes: asString(json['notas']),
     );
   }
 }

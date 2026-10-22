@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../core/http_helpers.dart';
@@ -38,13 +39,16 @@ class GoogleAuthService {
 
   final ApiService _api;
 
+  // Debe coincidir con el cliente OAuth "Web" del proyecto Firebase
+  // (pulseup-1256d): el backend solo acepta ID tokens cuyo `aud` sea este
+  // (ver backend/routers/public.py:_verify_google_token). En Web el plugin
+  // no acepta `serverClientId` (lee el client id del meta tag en index.html
+  // en su lugar), así que solo se pasa en Android/iOS.
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: const ['email'],
-    // Debe coincidir con el cliente OAuth "Web" del proyecto Firebase
-    // (pulseup-1256d): el backend solo acepta ID tokens cuyo `aud` sea este
-    // (ver backend/routers/public.py:_verify_google_token).
-    serverClientId:
-        '581568965866-j778dj26a5l69i3p7kdddb7kai0evsc2.apps.googleusercontent.com',
+    serverClientId: kIsWeb
+        ? null
+        : '581568965866-j778dj26a5l69i3p7kdddb7kai0evsc2.apps.googleusercontent.com',
   );
 
   Future<GoogleAuthOutcome> signInOrRegister() async {

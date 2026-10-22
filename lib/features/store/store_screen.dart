@@ -21,7 +21,7 @@ class StoreScreen extends StatefulWidget {
 }
 
 class _StoreScreenState extends State<StoreScreen> {
-  final service = ProductService(ApiConfig.fullUrl);
+  ProductService get service => ProductService(ApiConfig.fullUrl);
 
   List<Product> products = [];
   List<Product> filtered = [];

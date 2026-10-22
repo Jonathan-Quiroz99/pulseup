@@ -27,7 +27,7 @@ class ProductService {
     await checkAuthResponse(res);
 
     if (res.statusCode != 200) {
-      throw Exception('Error cargando productos (${res.statusCode})');
+      throw Exception('No pudimos cargar la tienda. Inténtalo de nuevo.');
     }
 
     final data = jsonDecode(res.body) as List<dynamic>;

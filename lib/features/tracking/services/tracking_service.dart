@@ -8,7 +8,7 @@ import '../models/body_measurement.dart';
 class TrackingService {
   // Antes estaba hardcodeado a produccion: en dev/staging tracking pegaba a
   // otro backend distinto al de login/perfil. Ahora usa la config unica.
-  static const String baseUrl = ApiConfig.baseUrl;
+  static String get baseUrl => ApiConfig.baseUrl;
 
   Future<List<BodyMeasurement>> fetchMeasurements(String token) async {
     final response = await http.get(
@@ -111,6 +111,39 @@ class TrackingService {
     }
   }
   
+  /// Meta de peso del socio (kg) o null si no ha definido una.
+  Future<double?> getWeightGoal(String token) async {
+    final response = await http.get(
+      Uri.parse("$baseUrl/api/mobile/me/weight-goal"),
+      headers: {"Authorization": "Bearer $token"},
+    ).timeout(apiTimeout);
+
+    await checkAuthResponse(response);
+
+    if (response.statusCode != 200) {
+      throw Exception("No se pudo cargar tu meta");
+    }
+    return (jsonDecode(response.body)['meta_peso_kg'] as num?)?.toDouble();
+  }
+
+  /// [goalKg] null borra la meta.
+  Future<void> saveWeightGoal(String token, double? goalKg) async {
+    final response = await http.put(
+      Uri.parse("$baseUrl/api/mobile/me/weight-goal"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({"meta_peso_kg": goalKg}),
+    ).timeout(apiTimeout);
+
+    await checkAuthResponse(response);
+
+    if (response.statusCode != 200) {
+      throw Exception("No se pudo guardar tu meta");
+    }
+  }
+
   // Obtener altura del usuario
   Future<double?> getUserHeight(String token) async {
     try {

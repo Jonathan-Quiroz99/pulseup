@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../core/http_helpers.dart';
+import '../../core/server_settings_dialog.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -209,6 +210,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text('¿No tienes cuenta?  Regístrate'),
                   ),
                 ),
+                const SizedBox(height: AppSpacing.sm),
+                const Center(child: ServerStatusButton()),
               ],
             ),
           ),

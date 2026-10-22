@@ -7,13 +7,15 @@ import '../../services/api_service.dart';
 import '../../widgets/ui/app_card.dart';
 import '../../widgets/ui/app_scaffold.dart';
 import '../../widgets/ui/section_header.dart';
-import '../../widgets/ui/weight_sparkline.dart';
 import '../auth/user_session.dart';
 import 'models/body_measurement.dart';
 import 'services/tracking_service.dart';
 import 'services/body_calculations_service.dart';
+import 'services/progress_insights.dart';
 import 'widgets/dynamic_add_measurement_sheet.dart';
+import 'widgets/goal_card.dart';
 import 'widgets/measurement_tile.dart';
+import 'widgets/metric_line_chart.dart';
 import 'widgets/progress_summary_card.dart';
 import 'widgets/tracking_empty_state.dart';
 
@@ -33,6 +35,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
   int? _userAge;
   String _userGender = 'male';
   bool _autoCalc = true;
+  double? _weightGoal;
+  String _metricKey = 'peso';
 
   final _weightController = TextEditingController();
   final _waistController = TextEditingController();
@@ -45,6 +49,80 @@ class _TrackingScreenState extends State<TrackingScreen> {
     super.initState();
     _loadMeasurements();
     _loadUserData();
+    _loadGoal();
+  }
+
+  Future<void> _loadGoal() async {
+    final token = UserSession.token;
+    if (token == null) return;
+    try {
+      final goal = await _trackingService.getWeightGoal(token);
+      if (mounted) setState(() => _weightGoal = goal);
+    } catch (e) {
+      // Sin meta la pantalla funciona igual (muestra "Define tu meta").
+      debugPrint('Tracking: goal failed: $e');
+    }
+  }
+
+  Future<void> _showEditGoalDialog() async {
+    final controller = TextEditingController(
+      text: _weightGoal?.toStringAsFixed(1) ?? '',
+    );
+    final formKey = GlobalKey<FormState>();
+    // Devuelve el valor nuevo, NaN para "quitar meta" o null si cancela.
+    final result = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Meta de peso'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Peso meta (kg)',
+              hintText: 'Ej: 72',
+            ),
+            validator: (value) {
+              final parsed = _parseNum(value ?? '');
+              if (parsed == null) return 'Ingresa un numero valido';
+              // Mismo rango que acepta el backend.
+              if (parsed < 30 || parsed > 300) return 'Debe estar entre 30 y 300 kg';
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          if (_weightGoal != null)
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(double.nan),
+              child: const Text('Quitar meta'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (!(formKey.currentState?.validate() ?? false)) return;
+              Navigator.of(dialogContext).pop(_parseNum(controller.text));
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    if (result == null) return;
+    final token = UserSession.token;
+    if (token == null) return;
+    final newGoal = result.isNaN ? null : result;
+    try {
+      await _trackingService.saveWeightGoal(token, newGoal);
+      if (mounted) setState(() => _weightGoal = newGoal);
+    } catch (e) {
+      _showSnack('No se pudo guardar tu meta. Inténtalo de nuevo.');
+    }
   }
 
   @override
@@ -452,9 +530,15 @@ void _openAddMeasurementSheet() {
           )
         : null;
 
-    // Oldest → newest for the trend line.
-    final weightSeries =
-        _measurements.reversed.map((m) => m.weightKg).toList();
+    final insights = ProgressInsights(_measurements);
+    final metrics = insights.availableMetrics();
+    final metric = metrics.firstWhere((m) => m.key == _metricKey,
+        orElse: () => metrics.isNotEmpty ? metrics.first : ProgressMetric.all.first);
+    final points = insights.series(metric);
+    final changes = insights.changes(metric);
+    final weightMetric = ProgressMetric.all.first;
+    final goalProgress = insights.weightGoal(_weightGoal);
+    final daysSince = insights.daysSinceLast();
 
     return AppScaffold(
       padding: EdgeInsets.zero,
@@ -471,19 +555,81 @@ void _openAddMeasurementSheet() {
             children: [
               _buildHeightRow(),
               const SizedBox(height: AppSpacing.lg),
-              if (weightSeries.length >= 2) ...[
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Tendencia de peso', style: AppTextStyles.label),
-                      const SizedBox(height: AppSpacing.md),
-                      WeightSparkline(values: weightSeries),
-                    ],
-                  ),
-                ),
+              if (daysSince != null && daysSince >= 7) ...[
+                _ReminderBanner(days: daysSince, onAdd: _openAddMeasurementSheet),
                 const SizedBox(height: AppSpacing.md),
               ],
+              GoalCard(
+                progress: goalProgress,
+                goal: _weightGoal,
+                weeklyRate: insights.weeklyRate(weightMetric),
+                onEdit: _showEditGoalDialog,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (final m in metrics)
+                            Padding(
+                              padding: const EdgeInsets.only(right: AppSpacing.sm),
+                              child: ChoiceChip(
+                                label: Text(m.label),
+                                selected: m.key == metric.key,
+                                onSelected: (_) => setState(() => _metricKey = m.key),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    if (points.length >= 2)
+                      MetricLineChart(
+                        points: points,
+                        unit: metric.unit,
+                        goal: metric.key == 'peso' ? _weightGoal : null,
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                        child: Text(
+                          'Registra al menos 2 mediciones de ${metric.label.toLowerCase()} para ver tu gráfica.',
+                          style: AppTextStyles.bodySm,
+                        ),
+                      ),
+                    if (changes.sinceStart != null) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _ChangeStat(
+                              label: 'Desde el inicio',
+                              delta: changes.sinceStart!,
+                              unit: metric.unit,
+                              good: ProgressInsights.isImprovement(metric, changes.sinceStart!,
+                                  weightGoal: _weightGoal, current: points.last.value),
+                            ),
+                          ),
+                          Expanded(
+                            child: _ChangeStat(
+                              label: 'Desde la anterior',
+                              delta: changes.sinceLast!,
+                              unit: metric.unit,
+                              good: ProgressInsights.isImprovement(metric, changes.sinceLast!,
+                                  weightGoal: _weightGoal, current: points.last.value),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
               IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -552,20 +698,89 @@ void _openAddMeasurementSheet() {
               ],
               const SizedBox(height: AppSpacing.xl),
               const SectionHeader(title: 'Historial'),
-              ..._measurements.map(
-                (m) => Padding(
+              for (var i = 0; i < _measurements.length; i++)
+                Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: MeasurementTile(
-                    measurement: m,
-                    onDelete: () => _deleteMeasurement(m),
-                  ),
+                  child: Builder(builder: (_) {
+                    final m = _measurements[i];
+                    // La lista viene de la más reciente a la más vieja.
+                    final prev = i + 1 < _measurements.length ? _measurements[i + 1] : null;
+                    final delta = prev == null ? null : m.weightKg - prev.weightKg;
+                    return MeasurementTile(
+                      measurement: m,
+                      onDelete: () => _deleteMeasurement(m),
+                      weightDelta: delta,
+                      deltaIsGood: delta == null
+                          ? null
+                          : ProgressInsights.isImprovement(weightMetric, delta,
+                              weightGoal: _weightGoal, current: m.weightKg),
+                    );
+                  }),
                 ),
-              ),
             ],
           ),
           _fab(),
         ],
       ),
+    );
+  }
+}
+
+class _ReminderBanner extends StatelessWidget {
+  final int days;
+  final VoidCallback onAdd;
+
+  const _ReminderBanner({required this.days, required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.warningSoft,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.event_repeat_outlined, color: AppColors.warning, size: 20),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              'Tu última medición fue hace $days días. Mídete hoy para ver tu avance.',
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.textPrimary),
+            ),
+          ),
+          TextButton(onPressed: onAdd, child: const Text('Medir')),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChangeStat extends StatelessWidget {
+  final String label;
+  final double delta;
+  final String unit;
+  final bool? good;
+
+  const _ChangeStat({required this.label, required this.delta, required this.unit, required this.good});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (good) {
+      true => AppColors.success,
+      false => AppColors.warning,
+      null => AppColors.textPrimary,
+    };
+    final sign = delta > 0.04 ? '+' : (delta < -0.04 ? '−' : '');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.label),
+        const SizedBox(height: 2),
+        Text('$sign${delta.abs().toStringAsFixed(1)} $unit',
+            style: AppTextStyles.statSm.copyWith(color: color)),
+      ],
     );
   }
 }

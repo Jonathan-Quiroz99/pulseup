@@ -7,7 +7,7 @@ import '../../../core/http_helpers.dart';
 import '../models/checkin_record.dart';
 
 class CheckinService {
-  final String baseUrl = ApiConfig.baseUrl;
+  String get baseUrl => ApiConfig.baseUrl;
 
   Future<List<CheckinRecord>>
       fetchMyCheckins(String token) async {

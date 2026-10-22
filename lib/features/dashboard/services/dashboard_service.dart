@@ -12,7 +12,9 @@ class DashboardService {
       return null;
     }
 
-    final workout = routines.first;
+    // La rutina actual; si ninguna esta marcada activa, la mas reciente.
+    final workout = routines.firstWhere((r) => r.isActive,
+        orElse: () => routines.first);
 
     return DashboardWorkout(
       name: workout.name,

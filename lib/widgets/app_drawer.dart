@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/navigation/app_screen.dart';
+import '../core/server_settings_dialog.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_text_styles.dart';
@@ -46,6 +47,7 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
             const Divider(height: 1),
+            const Center(child: ServerStatusButton()),
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.error),
               title: Text('Cerrar sesión',

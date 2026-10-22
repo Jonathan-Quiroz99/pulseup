@@ -10,7 +10,19 @@ class MeasurementTile extends StatelessWidget {
   final BodyMeasurement measurement;
   final VoidCallback? onDelete;
 
-  const MeasurementTile({super.key, required this.measurement, this.onDelete});
+  /// Cambio de peso contra la medición anterior (null en la primera).
+  final double? weightDelta;
+
+  /// true = el cambio acerca a la meta (verde), false = aleja, null = neutro.
+  final bool? deltaIsGood;
+
+  const MeasurementTile({
+    super.key,
+    required this.measurement,
+    this.onDelete,
+    this.weightDelta,
+    this.deltaIsGood,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +36,20 @@ class MeasurementTile extends StatelessWidget {
               Expanded(
                 child: Text(measurement.date, style: AppTextStyles.titleMd),
               ),
+              if (weightDelta != null && weightDelta!.abs() >= 0.05)
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.sm),
+                  child: Text(
+                    '${weightDelta! > 0 ? '+' : '−'}${weightDelta!.abs().toStringAsFixed(1)}',
+                    style: AppTextStyles.label.copyWith(
+                      color: switch (deltaIsGood) {
+                        true => AppColors.success,
+                        false => AppColors.warning,
+                        null => AppColors.textSecondary,
+                      },
+                    ),
+                  ),
+                ),
               Text(
                 '${measurement.weightKg.toStringAsFixed(1)} kg',
                 style: AppTextStyles.statSm.copyWith(color: AppColors.accent),

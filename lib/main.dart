@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/backend_resolver.dart';
 import 'core/session_guard.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/login_screen.dart';
@@ -40,13 +41,38 @@ class _StartupGate extends StatefulWidget {
   State<_StartupGate> createState() => _StartupGateState();
 }
 
-class _StartupGateState extends State<_StartupGate> {
+class _StartupGateState extends State<_StartupGate>
+    with WidgetsBindingObserver {
   late final Future<bool> _hasSession;
 
   @override
   void initState() {
     super.initState();
-    _hasSession = UserSession.restoreSession();
+    WidgetsBinding.instance.addObserver(this);
+    // Buscar el servidor (nube, PC por cable o PC en la WiFi) antes de que
+    // la primera pantalla haga peticiones.
+    _hasSession = Future.wait([
+      UserSession.restoreSession(),
+      // Tope: pase lo que pase con la red, la app arranca (con Render).
+      BackendResolver.resolve().timeout(
+        const Duration(seconds: 12),
+        onTimeout: () => '',
+      ),
+    ]).then((results) => results.first as bool);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Al volver a la app la red pudo cambiar (otra WiFi, cable conectado).
+    if (state == AppLifecycleState.resumed) {
+      BackendResolver.resolveInBackground();
+    }
   }
 
   @override
@@ -57,7 +83,14 @@ class _StartupGateState extends State<_StartupGate> {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
             body: Center(
-              child: CircularProgressIndicator(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Buscando servidor…'),
+                ],
+              ),
             ),
           );
         }

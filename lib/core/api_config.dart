@@ -2,23 +2,26 @@
 
 class ApiConfig {
 
-  // Backend en Render (producción). Se puede sobreescribir en tiempo de build
-  // para apuntar a un backend local:
+  // Backend en Render (producción). Se puede sobreescribir en tiempo de build:
   //   flutter run --dart-define=API_BASE_URL=http://localhost:8000
-  // (con `adb reverse tcp:8000 tcp:8000` para llegar al PC por USB).
   //
-  // Demo SIN internet (celular por WiFi/hotspot, sin cable): compilar un APK
-  // de release apuntando a la IP de LAN de la PC en vez de localhost —
-  //   flutter build apk --release --dart-define=API_BASE_URL=http://<IP-PC>:8000
-  // con el backend corriendo `npm run demo:lan` en el repo de LED GYM
-  // (Proyecto Integrador). Ver docs/demo-sin-internet.md ahi para el detalle.
-  static const String baseUrl = String.fromEnvironment(
+  // Ya NO hace falta recompilar para el demo sin internet: al arrancar,
+  // [BackendResolver] (backend_resolver.dart) busca solo el servidor que
+  // responda — Render, la PC por cable USB (`adb reverse`), el hotspot de
+  // Windows o cualquier PC de la red WiFi del celular corriendo
+  // `npm run demo:lan` — y actualiza [baseUrl]. Ver
+  // docs/demo-sin-internet.md en el repo de LED GYM (Proyecto Integrador).
+  static const String defaultBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'https://membersync-byso.onrender.com',
   );
 
+  /// Servidor en uso ahora mismo. Lo cambia [BackendResolver]; por eso los
+  /// servicios deben leerlo en cada petición (getter), nunca copiarlo a una
+  /// constante.
+  static String baseUrl = defaultBaseUrl;
+
   static const String apiVersion = '/api';
 
-  static const String fullUrl =
-      '$baseUrl$apiVersion';
+  static String get fullUrl => '$baseUrl$apiVersion';
 }

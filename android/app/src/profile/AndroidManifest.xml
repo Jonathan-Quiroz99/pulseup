@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- HTTP plano para llegar al backend de la PC (LAN / adb reverse), igual
+         que en debug y release. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

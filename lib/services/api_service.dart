@@ -16,7 +16,7 @@ class GoogleAccountNotFoundException implements Exception {
 }
 
 class ApiService {
-  static const String _baseUrl = ApiConfig.fullUrl;
+  static String get _baseUrl => ApiConfig.fullUrl;
 
   Map<String, dynamic> _decodeOrThrow(http.Response response) {
     final data = jsonDecode(response.body);

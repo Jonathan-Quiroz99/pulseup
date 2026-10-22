@@ -6,7 +6,7 @@ import '../../../core/http_helpers.dart';
 import '../models/workout_plan.dart';
 
 class RoutinesService {
-  static const String baseUrl = ApiConfig.baseUrl;
+  static String get baseUrl => ApiConfig.baseUrl;
 
   Future<List<WorkoutPlan>> fetchMyWorkouts(
     String token,

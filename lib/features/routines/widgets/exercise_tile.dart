@@ -11,6 +11,10 @@ class ExerciseTile extends StatelessWidget {
 
   const ExerciseTile({super.key, required this.exercise});
 
+  /// "10" -> "10 reps"; "20 min" o "30-45 s" ya traen su unidad.
+  static String _repsLabel(String reps) =>
+      RegExp(r'^[\d\s\-–]+$').hasMatch(reps) ? '$reps reps' : reps;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -35,10 +39,15 @@ class ExerciseTile extends StatelessWidget {
             runSpacing: AppSpacing.sm,
             children: [
               RoutineChip(icon: Icons.repeat, text: '${exercise.sets} series'),
-              RoutineChip(icon: Icons.tag, text: '${exercise.reps} reps'),
-              RoutineChip(icon: Icons.timer_outlined, text: '${exercise.rest}s'),
+              RoutineChip(icon: Icons.tag, text: _repsLabel(exercise.reps)),
+              if (exercise.rest > 0)
+                RoutineChip(icon: Icons.timer_outlined, text: '${exercise.rest}s descanso'),
             ],
           ),
+          if (exercise.notes.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(exercise.notes, style: AppTextStyles.bodySm),
+          ],
         ],
       ),
     );

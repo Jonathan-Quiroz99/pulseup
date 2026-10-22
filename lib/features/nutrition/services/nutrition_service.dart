@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
 import '../../../core/api_config.dart';
+import '../../../core/backend_resolver.dart';
 import '../../../core/http_helpers.dart';
 import '../../auth/user_session.dart';
 import '../models/daily_nutrition.dart';
@@ -23,7 +25,7 @@ class NoFoodDetectedException implements Exception {
 }
 
 class NutritionService {
-  static const String _base = '${ApiConfig.baseUrl}/api/mobile/nutrition';
+  static String get _base => '${ApiConfig.baseUrl}/api/mobile/nutrition';
 
   Map<String, String> _authHeaders({bool json = false}) => {
         'Authorization': 'Bearer ${UserSession.token}',
@@ -108,20 +110,62 @@ class NutritionService {
   // -------------------------------------------------------------------------
 
   /// [imageDataUri] debe ser `data:image/jpeg;base64,....`.
+  ///
+  /// Se intenta primero en el servidor actual. Si ahi la IA no esta
+  /// disponible (Render la tiene desactivada) se reintenta en una PC de la
+  /// red con Gemma ([BackendResolver.findAiServer]); el resto de la app sigue
+  /// en el servidor actual y la comida se guarda ahi como siempre.
   Future<MealAnalysis> analyzeMeal(String imageDataUri) async {
-    final http.Response res;
+    final primary = ApiConfig.baseUrl;
+    // Si el servidor actual no contesta (Render "despertando", red que lo
+    // bloquea) tambien vale la pena probar la PC antes de rendirse.
+    http.Response? res;
+    Exception? primaryError;
     try {
-      res = await http
-          .post(
-            Uri.parse('$_base/analyze'),
-            headers: _authHeaders(json: true),
-            body: jsonEncode({'imageBase64': imageDataUri}),
-          )
-          .timeout(const Duration(seconds: 60));
-    } on TimeoutException {
-      throw Exception('El análisis tardó demasiado. Inténtalo de nuevo.');
+      res = await _postAnalyze(primary, imageDataUri);
+      await checkAuthResponse(res);
+    } on TimeoutException catch (e) {
+      primaryError = e;
+    } on SocketException catch (e) {
+      primaryError = e;
+    } on http.ClientException catch (e) {
+      primaryError = e;
     }
-    await checkAuthResponse(res);
+
+    // Cualquier 5xx, no solo 503: con Claude sin saldo el servidor responde
+    // 502 ("El servicio de IA no esta disponible ahora") y antes eso nunca
+    // probaba la PC con Gemma.
+    if (res == null || res.statusCode >= 500) {
+      final pc = await BackendResolver.findAiServer();
+      if (pc == null || pc == primary) {
+        if (res == null) {
+          throw primaryError is TimeoutException
+              ? Exception('El análisis tardó demasiado. Inténtalo de nuevo.')
+              : Exception('No hay conexión con el servidor. Inténtalo de nuevo.');
+        }
+      } else {
+        final http.Response pcRes;
+        try {
+          pcRes = await _postAnalyze(pc, imageDataUri, onPc: true);
+        } on TimeoutException {
+          throw Exception('El análisis tardó demasiado. Inténtalo de nuevo.');
+        } catch (e) {
+          // La PC dejo de responder: buscarla de nuevo la proxima vez.
+          BackendResolver.forgetAiServer();
+          throw Exception(
+              'Se perdió la conexión con la PC del gimnasio durante el '
+              'análisis. Inténtalo de nuevo.');
+        }
+        if (pcRes.statusCode == 401) {
+          // NO cerrar la sesion: la sesion es valida en la nube, solo que
+          // esta PC no la reconoce (SECRET_KEY distinta a la de Render).
+          throw Exception(
+              'No pudimos analizar la foto en este momento. Puedes agregar '
+              'la comida manualmente.');
+        }
+        res = pcRes;
+      }
+    }
 
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body) as Map<String, dynamic>;
@@ -146,6 +190,18 @@ class NutritionService {
       _throwFromBody(res, 'No se pudo analizar la imagen. Inténtalo de nuevo.');
     }
     _throwFromBody(res, 'No se pudo analizar la imagen');
+  }
+
+  Future<http.Response> _postAnalyze(String baseUrl, String imageDataUri,
+      {bool onPc = false}) async {
+    return http
+        .post(
+          Uri.parse('$baseUrl/api/mobile/nutrition/analyze'),
+          headers: _authHeaders(json: true),
+          body: jsonEncode({'imageBase64': imageDataUri}),
+        )
+        // Gemma en la PC puede tardar mas la primera vez (carga el modelo).
+        .timeout(Duration(seconds: onPc ? 120 : 60));
   }
 
   // -------------------------------------------------------------------------
