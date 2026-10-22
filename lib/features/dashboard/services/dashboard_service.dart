@@ -1,4 +1,6 @@
+import '../../routines/services/routine_schedule.dart';
 import '../../routines/services/routines_service.dart';
+import '../../routines/widgets/routine_view.dart';
 import '../../tracking/services/tracking_service.dart';
 import '../../checkin/services/checkin_service.dart';
 import '../models/dashboard_stats.dart';
@@ -16,10 +18,23 @@ class DashboardService {
     final workout = routines.firstWhere((r) => r.isActive,
         orElse: () => routines.first);
 
+    // Mismo criterio que la pantalla de Rutinas (RoutineView).
+    final days = RoutineView.groupByDay(workout.exercises);
+    var todayLabel = '';
+    var todayExercises = workout.exercises.length;
+    if (days.length > 1) {
+      final done = await RoutineSchedule.completedCount(workout.id);
+      final today = days[RoutineSchedule.todayIndex(done, days.length)];
+      todayLabel = today.key;
+      todayExercises = today.value.length;
+    }
+
     return DashboardWorkout(
       name: workout.name,
       exercises: workout.exercises.length,
       trainer: workout.trainer,
+      todayLabel: todayLabel,
+      todayExercises: todayExercises,
     );
   }
 

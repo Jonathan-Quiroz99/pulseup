@@ -59,11 +59,17 @@ class WorkoutCard extends StatelessWidget {
                         style: AppTextStyles.label
                             .copyWith(color: AppColors.accent, letterSpacing: 1)),
                     const SizedBox(height: AppSpacing.sm),
-                    Text(workout.name, style: AppTextStyles.titleLg),
+                    Text(
+                      workout.todayLabel.isNotEmpty ? workout.todayLabel : workout.name,
+                      style: AppTextStyles.titleLg,
+                    ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      '${workout.exercises} ejercicios'
-                      '${workout.trainer.isNotEmpty ? '  ·  Coach ${workout.trainer}' : ''}',
+                      [
+                        if (workout.todayLabel.isNotEmpty) workout.name,
+                        '${workout.todayExercises} ejercicios',
+                        if (workout.trainer.isNotEmpty) 'Coach ${workout.trainer}',
+                      ].join('  ·  '),
                       style: AppTextStyles.bodySm,
                     ),
                     const SizedBox(height: AppSpacing.lg),

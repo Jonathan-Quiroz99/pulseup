@@ -81,6 +81,7 @@ class GoalCard extends StatelessWidget {
                   minimumSize: Size.zero,
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  textStyle: AppTextStyles.label.copyWith(fontWeight: FontWeight.w600),
                 ),
                 child: const Text('Editar'),
               ),

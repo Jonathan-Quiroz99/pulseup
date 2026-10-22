@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -9,6 +13,7 @@ import '../../widgets/ui/app_scaffold.dart';
 import '../../widgets/ui/section_header.dart';
 import '../auth/user_session.dart';
 import 'models/body_measurement.dart';
+import 'models/progress_photo.dart';
 import 'services/tracking_service.dart';
 import 'services/body_calculations_service.dart';
 import 'services/progress_insights.dart';
@@ -16,8 +21,8 @@ import 'widgets/dynamic_add_measurement_sheet.dart';
 import 'widgets/goal_card.dart';
 import 'widgets/measurement_tile.dart';
 import 'widgets/metric_line_chart.dart';
+import 'widgets/progress_photos_card.dart';
 import 'widgets/progress_summary_card.dart';
-import 'widgets/tracking_empty_state.dart';
 
 class TrackingScreen extends StatefulWidget {
   const TrackingScreen({super.key});
@@ -37,6 +42,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
   bool _autoCalc = true;
   double? _weightGoal;
   String _metricKey = 'peso';
+  List<ProgressPhoto> _photos = [];
+  bool _uploadingPhoto = false;
+  final _picker = ImagePicker();
 
   final _weightController = TextEditingController();
   final _waistController = TextEditingController();
@@ -50,6 +58,126 @@ class _TrackingScreenState extends State<TrackingScreen> {
     _loadMeasurements();
     _loadUserData();
     _loadGoal();
+    _loadPhotos();
+  }
+
+  Future<void> _loadPhotos() async {
+    final token = UserSession.token;
+    if (token == null) return;
+    try {
+      final photos = await _trackingService.fetchPhotos(token);
+      if (mounted) setState(() => _photos = photos);
+    } catch (e) {
+      debugPrint('Tracking: photos failed: $e');
+    }
+  }
+
+  Future<void> _addPhoto() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AppColors.surfaceHigh,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Tomar foto'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Elegir de la galería'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    final token = UserSession.token;
+    if (token == null) return;
+    try {
+      final x = await _picker.pickImage(source: source, maxWidth: 1600, maxHeight: 1600, imageQuality: 85);
+      if (x == null) return;
+      final bytes = await x.readAsBytes();
+      setState(() => _uploadingPhoto = true);
+      final photo = await _trackingService.addPhoto(token, 'data:image/jpeg;base64,${base64Encode(bytes)}');
+      if (!mounted) return;
+      setState(() {
+        _photos = [..._photos, photo]..sort((a, b) => a.date.compareTo(b.date));
+      });
+      _showSnack('Foto guardada. ¡Sigue así!');
+    } on PlatformException {
+      _showSnack('No pudimos abrir la cámara o la galería. Revisa los permisos de la app.');
+    } catch (e) {
+      _showSnack(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
+
+  Future<void> _openPhoto(ProgressPhoto photo) async {
+    final delete = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppColors.surfaceHigh,
+        insetPadding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusMd)),
+              child: InteractiveViewer(child: Image.memory(photo.bytes, fit: BoxFit.contain)),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              child: Row(
+                children: [
+                  Expanded(child: Text(ProgressPhotosCard.dateLabel(photo), style: AppTextStyles.titleMd)),
+                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Borrar')),
+                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cerrar')),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (delete != true) return;
+    final token = UserSession.token;
+    if (token == null) return;
+    try {
+      await _trackingService.deletePhoto(token, photo.id);
+      if (mounted) setState(() => _photos = _photos.where((p) => p.id != photo.id).toList());
+    } catch (e) {
+      _showSnack('No se pudo borrar la foto. Inténtalo de nuevo.');
+    }
+  }
+
+  void _showHelp() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Cómo uso Progreso?'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              _HelpItem(Icons.monitor_weight_outlined, 'Mídete una vez por semana',
+                  'El mismo día, en la mañana y antes de desayunar. El peso cambia mucho durante el día; así comparas parejo.'),
+              _HelpItem(Icons.flag_outlined, 'Tu meta',
+                  'El peso al que quieres llegar. Te decimos cuánto te falta y, cuando haya suficientes datos, cuándo podrías llegar.'),
+              _HelpItem(Icons.show_chart, 'La gráfica',
+                  'Elige peso, grasa, cintura... Verde = vas hacia tu objetivo; amarillo = vas en sentido contrario.'),
+              _HelpItem(Icons.photo_camera_outlined, 'Las fotos',
+                  'Cada 2 a 4 semanas. A veces la báscula no se mueve pero tu cuerpo sí cambia (ganas músculo y bajas grasa).'),
+            ],
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))],
+      ),
+    );
   }
 
   Future<void> _loadGoal() async {
@@ -474,6 +602,54 @@ void _openAddMeasurementSheet() {
     );
   }
 
+  Widget _buildGettingStarted() {
+    Widget step(int n, String title, String text, String action, VoidCallback onTap, {bool done = false}) {
+      return AppCard(
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: done ? AppColors.success : AppColors.accentSoft,
+              child: done
+                  ? const Icon(Icons.check, size: 18, color: AppColors.onSuccess)
+                  : Text('$n', style: AppTextStyles.titleMd.copyWith(color: AppColors.accent)),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppTextStyles.titleMd),
+                  const SizedBox(height: 2),
+                  Text(text, style: AppTextStyles.bodySm),
+                ],
+              ),
+            ),
+            if (!done) TextButton(onPressed: onTap, child: Text(action)),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.only(top: AppSpacing.lg, bottom: AppSpacing.navBarClearance + 76),
+      children: [
+        Text('Empieza a ver tu progreso', style: AppTextStyles.displayMd),
+        const SizedBox(height: AppSpacing.xs),
+        Text('Son 3 pasos y te toma 2 minutos. Después solo vuelves una vez por semana.',
+            style: AppTextStyles.bodySm),
+        const SizedBox(height: AppSpacing.lg),
+        step(1, 'Define tu meta', 'El peso al que quieres llegar.', 'Definir', _showEditGoalDialog,
+            done: _weightGoal != null),
+        const SizedBox(height: AppSpacing.sm),
+        step(2, 'Registra tu peso de hoy', 'Es tu punto de partida.', 'Registrar', _openAddMeasurementSheet),
+        const SizedBox(height: AppSpacing.sm),
+        step(3, 'Tómate una foto', 'Para comparar el antes y el ahora.', 'Foto', _addPhoto,
+            done: _photos.isNotEmpty),
+      ],
+    );
+  }
+
   Widget _fab() {
     return Positioned(
       right: AppSpacing.screenX,
@@ -509,7 +685,7 @@ void _openAddMeasurementSheet() {
               child: Column(
                 children: [
                   _buildHeightRow(),
-                  const Expanded(child: TrackingEmptyState()),
+                  Expanded(child: _buildGettingStarted()),
                 ],
               ),
             ),
@@ -539,6 +715,7 @@ void _openAddMeasurementSheet() {
     final weightMetric = ProgressMetric.all.first;
     final goalProgress = insights.weightGoal(_weightGoal);
     final daysSince = insights.daysSinceLast();
+    final summary = insights.summary(_weightGoal);
 
     return AppScaffold(
       padding: EdgeInsets.zero,
@@ -555,6 +732,34 @@ void _openAddMeasurementSheet() {
             children: [
               _buildHeightRow(),
               const SizedBox(height: AppSpacing.lg),
+              if (summary != null) ...[
+                AppCard(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('TU RESUMEN',
+                                style: AppTextStyles.label.copyWith(color: AppColors.accent, letterSpacing: 1)),
+                            const SizedBox(height: 4),
+                            Text(summary.title, style: AppTextStyles.titleLg),
+                            const SizedBox(height: 4),
+                            Text(summary.detail, style: AppTextStyles.bodySm),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: '¿Cómo uso Progreso?',
+                        onPressed: _showHelp,
+                        icon: const Icon(Icons.help_outline, color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
               if (daysSince != null && daysSince >= 7) ...[
                 _ReminderBanner(days: daysSince, onAdd: _openAddMeasurementSheet),
                 const SizedBox(height: AppSpacing.md),
@@ -628,6 +833,14 @@ void _openAddMeasurementSheet() {
                     ],
                   ],
                 ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              ProgressPhotosCard(
+                photos: _photos,
+                measurements: _measurements,
+                uploading: _uploadingPhoto,
+                onAdd: _addPhoto,
+                onOpen: _openPhoto,
               ),
               const SizedBox(height: AppSpacing.md),
               IntrinsicHeight(
@@ -781,6 +994,38 @@ class _ChangeStat extends StatelessWidget {
         Text('$sign${delta.abs().toStringAsFixed(1)} $unit',
             style: AppTextStyles.statSm.copyWith(color: color)),
       ],
+    );
+  }
+}
+
+class _HelpItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String text;
+
+  const _HelpItem(this.icon, this.title, this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: AppColors.accent),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.titleMd),
+                const SizedBox(height: 2),
+                Text(text, style: AppTextStyles.bodySm),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

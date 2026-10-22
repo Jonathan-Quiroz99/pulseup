@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/api_config.dart';
 import '../../../core/http_helpers.dart';
 import '../models/body_measurement.dart';
+import '../models/progress_photo.dart';
 
 class TrackingService {
   // Antes estaba hardcodeado a produccion: en dev/staging tracking pegaba a
@@ -111,6 +112,59 @@ class TrackingService {
     }
   }
   
+  Future<List<ProgressPhoto>> fetchPhotos(String token) async {
+    final response = await http.get(
+      Uri.parse("$baseUrl/api/mobile/me/progress-photos"),
+      headers: {"Authorization": "Bearer $token"},
+    ).timeout(apiTimeout);
+
+    await checkAuthResponse(response);
+
+    if (response.statusCode != 200) {
+      throw Exception("No se pudieron cargar tus fotos");
+    }
+    final List<dynamic> data = jsonDecode(response.body);
+    return data.whereType<Map<String, dynamic>>().map(ProgressPhoto.fromJson).toList();
+  }
+
+  /// [imageDataUri]: `data:image/jpeg;base64,...`. El servidor la endereza,
+  /// la reduce y le quita los metadatos (ubicación).
+  Future<ProgressPhoto> addPhoto(String token, String imageDataUri) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/api/mobile/me/progress-photos"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({"imagen": imageDataUri}),
+    ).timeout(const Duration(seconds: 90));
+
+    await checkAuthResponse(response);
+
+    if (response.statusCode != 201) {
+      String msg = "No se pudo guardar la foto. Inténtalo de nuevo.";
+      try {
+        final detail = jsonDecode(response.body)['detail'];
+        if (detail is String && detail.isNotEmpty) msg = detail;
+      } catch (_) {}
+      throw Exception(msg);
+    }
+    return ProgressPhoto.fromJson(jsonDecode(response.body));
+  }
+
+  Future<void> deletePhoto(String token, String photoId) async {
+    final response = await http.delete(
+      Uri.parse("$baseUrl/api/mobile/me/progress-photos/$photoId"),
+      headers: {"Authorization": "Bearer $token"},
+    ).timeout(apiTimeout);
+
+    await checkAuthResponse(response);
+
+    if (response.statusCode != 204) {
+      throw Exception("No se pudo borrar la foto");
+    }
+  }
+
   /// Meta de peso del socio (kg) o null si no ha definido una.
   Future<double?> getWeightGoal(String token) async {
     final response = await http.get(

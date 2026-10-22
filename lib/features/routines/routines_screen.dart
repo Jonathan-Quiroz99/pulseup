@@ -10,6 +10,7 @@ import 'models/workout_plan.dart';
 import 'services/routines_service.dart';
 
 import 'widgets/routine_card.dart';
+import 'widgets/routine_view.dart';
 
 class RoutinesScreen
     extends StatefulWidget {
@@ -124,8 +125,8 @@ class _RoutinesScreenState
           ),
           children: [
             for (final routine in current) ...[
-              RoutineCard(routine: routine),
-              const SizedBox(height: AppSpacing.md),
+              RoutineView(key: ValueKey(routine.id), routine: routine),
+              const SizedBox(height: AppSpacing.xl),
             ],
             if (current.isEmpty)
               const Padding(

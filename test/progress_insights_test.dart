@@ -83,4 +83,18 @@ void main() {
     expect(i.daysSinceLast(), 10);
     expect(ProgressInsights(const []).daysSinceLast(), isNull);
   });
+
+  test('resumen en palabras', () {
+    final i = ProgressInsights(losing);
+    expect(i.summary(null)!.title, 'Has bajado 3.0 kg en 3 semanas');
+    expect(i.summary(null)!.detail, contains('Define una meta'));
+    expect(i.summary(80)!.detail, 'Vas por buen camino. Te faltan 7.0 kg para tu meta.');
+    expect(i.summary(88)!.detail, contains('Llegaste a tu meta'));
+    expect(i.summary(95)!.detail, contains('Tu meta es subir'));
+    expect(ProgressInsights([losing.first]).summary(80)!.title, 'Tu punto de partida: 87.0 kg');
+    expect(ProgressInsights(const []).summary(80), isNull);
+    // Muy rapido: -2 kg/semana.
+    final fast = [_m('2026-03-15', 86), _m('2026-03-08', 88), _m('2026-03-01', 90)];
+    expect(ProgressInsights(fast).summary(70)!.detail, contains('Vas rápido'));
+  });
 }

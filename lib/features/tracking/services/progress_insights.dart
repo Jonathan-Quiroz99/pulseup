@@ -165,6 +165,61 @@ class ProgressInsights {
     );
   }
 
+  /// Resumen en palabras ("Has bajado 1.2 kg en 3 semanas") para quien no
+  /// quiere leer gráficas. Null si no hay mediciones.
+  ({String title, String detail})? summary(double? goal) {
+    final s = series(ProgressMetric.all.first);
+    if (s.isEmpty) return null;
+    String kg(double v) => '${v.abs().toStringAsFixed(1)} kg';
+
+    if (s.length == 1) {
+      return (
+        title: 'Tu punto de partida: ${kg(s.first.value)}',
+        detail: 'Vuelve a medirte en una semana, a la misma hora y antes de desayunar, '
+            'para empezar a ver tu avance.',
+      );
+    }
+
+    final delta = s.last.value - s.first.value;
+    final days = s.last.date.difference(s.first.date).inDays;
+    final weeks = (days / 7).round();
+    final span = days >= 14
+        ? 'en $weeks semanas'
+        : days <= 1
+            ? 'desde tu primera medición'
+            : 'en $days días';
+    final title = delta <= -0.05
+        ? 'Has bajado ${kg(delta)} $span'
+        : delta >= 0.05
+            ? 'Has subido ${kg(delta)} $span'
+            : 'Tu peso se ha mantenido $span';
+
+    if (goal == null) {
+      return (title: title, detail: 'Define una meta de peso para saber si vas por buen camino.');
+    }
+    final g = weightGoal(goal)!;
+    if (g.reached) {
+      return (title: title, detail: '¡Llegaste a tu meta de ${kg(goal)}! Puedes definir una nueva.');
+    }
+    final rate = weeklyRate(ProgressMetric.all.first);
+    final towardGoal = g.losing ? delta < -0.05 : delta > 0.05;
+    if (!towardGoal) {
+      return (
+        title: title,
+        detail: 'Tu meta es ${g.losing ? 'bajar' : 'subir'} a ${kg(goal)}. Todavía no se nota el '
+            'cambio: platica con tu entrenador sobre tu rutina y tu alimentación.',
+      );
+    }
+    final remaining = 'Te faltan ${kg(g.remaining)} para tu meta.';
+    if (g.losing && rate != null && rate < -1.0) {
+      return (
+        title: title,
+        detail: '$remaining Vas rápido: bajar más de 1 kg por semana puede hacerte perder músculo.',
+      );
+    }
+    return (title: title, detail: 'Vas por buen camino. $remaining');
+  }
+
   /// ¿Este cambio es bueno? null = neutral (no hay criterio).
   static bool? isImprovement(ProgressMetric metric, double delta, {double? weightGoal, double? current}) {
     if (delta.abs() < 0.05) return null;
