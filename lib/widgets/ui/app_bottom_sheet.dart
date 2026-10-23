@@ -48,11 +48,13 @@ Future<T?> showAppBottomSheet<T>({
               const Divider(height: 1),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(
+                  // + la barra de navegación del sistema: sin esto lo último
+                  // de la hoja quedaba debajo de ella y no se alcanzaba.
+                  padding: EdgeInsets.fromLTRB(
                     AppSpacing.xl,
                     AppSpacing.lg,
                     AppSpacing.xl,
-                    AppSpacing.xl,
+                    AppSpacing.xl + MediaQuery.viewPaddingOf(context).bottom,
                   ),
                   child: child,
                 ),

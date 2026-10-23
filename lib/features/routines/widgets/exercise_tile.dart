@@ -82,11 +82,15 @@ void showExerciseDetail(BuildContext context, WorkoutExercise e) {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Tope de 300: a todo lo ancho la imagen llenaba la hoja y la
+        // información quedaba fuera de la vista.
         LayoutBuilder(
-          builder: (context, c) => ExerciseThumb(
-            exerciseName: e.name,
-            size: c.maxWidth,
-            radius: AppSpacing.radiusMd,
+          builder: (context, c) => Center(
+            child: ExerciseThumb(
+              exerciseName: e.name,
+              size: c.maxWidth < 300 ? c.maxWidth : 300,
+              radius: AppSpacing.radiusMd,
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
