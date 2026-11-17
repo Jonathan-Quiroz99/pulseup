@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/theme/app_colors.dart';
 
@@ -22,6 +23,7 @@ class AppTextField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final Iterable<String>? autofillHints;
   final TextInputAction? textInputAction;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AppTextField({
     super.key,
@@ -41,6 +43,7 @@ class AppTextField extends StatefulWidget {
     this.onChanged,
     this.autofillHints,
     this.textInputAction,
+    this.inputFormatters,
   });
 
   @override
@@ -67,6 +70,7 @@ class _AppTextFieldState extends State<AppTextField> {
     return TextFormField(
       controller: widget.controller,
       keyboardType: widget.keyboardType,
+      inputFormatters: widget.inputFormatters,
       obscureText: _obscured,
       enabled: widget.enabled,
       readOnly: widget.readOnly,

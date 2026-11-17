@@ -12,6 +12,7 @@ import '../user_session.dart';
 import 'models/register_models.dart';
 import 'register_step2_screen.dart';
 import 'widgets/step_indicator.dart';
+import '../../../core/phone.dart';
 
 class RegisterStep1Screen extends StatefulWidget {
   final RegisterData initialData;
@@ -96,9 +97,8 @@ class _RegisterStep1ScreenState extends State<RegisterStep1Screen> {
       _showError('Ingresa un correo válido');
       return;
     }
-    if (telefono.isEmpty ||
-        telefono.replaceAll(RegExp(r'\D'), '').length < 10) {
-      _showError('Ingresa un teléfono válido (10 dígitos)');
+    if (cleanPhone(telefono).length != phoneLength) {
+      _showError('El teléfono debe tener exactamente 10 dígitos');
       return;
     }
     final fechaError = birthdateError(fecha);
@@ -248,7 +248,9 @@ class _RegisterStep1ScreenState extends State<RegisterStep1Screen> {
               AppTextField(
                 controller: _telefonoController,
                 label: 'Teléfono',
+                hint: '10 dígitos',
                 keyboardType: TextInputType.phone,
+                inputFormatters: const [MxPhoneInputFormatter()],
                 autofillHints: const [AutofillHints.telephoneNumber],
               ),
               const SizedBox(height: AppSpacing.md),
