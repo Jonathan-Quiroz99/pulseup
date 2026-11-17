@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/backend_resolver.dart';
 import 'core/session_guard.dart';
 import 'core/theme/app_theme.dart';
@@ -27,6 +28,11 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.dark,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.dark,
+      // Sin esto el selector de fecha del registro salia en ingles
+      // ("Mon, Nov 17", "Cancel", "OK") en una app toda en espanol.
+      locale: const Locale('es', 'MX'),
+      supportedLocales: const [Locale('es', 'MX'), Locale('es')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: const _StartupGate(),
     );
   }
@@ -49,11 +55,11 @@ class _StartupGateState extends State<_StartupGate>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Buscar el servidor (nube, PC por cable o PC en la WiFi) antes de que
+    // Buscar la PC del gimnasio (por cable o en la WiFi) antes de que
     // la primera pantalla haga peticiones.
     _hasSession = Future.wait([
       UserSession.restoreSession(),
-      // Tope: pase lo que pase con la red, la app arranca (con Render).
+      // Tope: pase lo que pase con la red, la app arranca (con la PC por cable).
       BackendResolver.resolve().timeout(
         const Duration(seconds: 12),
         onTimeout: () => '',

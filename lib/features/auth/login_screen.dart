@@ -39,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      _showError('Ingresa correo y contraseña');
+      _showError('Ingresa tu correo o teléfono y tu contraseña');
       return;
     }
 
@@ -110,9 +110,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -129,16 +129,24 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentSoft,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                    ),
-                    child: Image.asset(
-                      'assets/images/logo.png',
-                      width: 72,
-                      height: 72,
+                  // Sin texto de "Servidor" en el login: mantener presionado
+                  // el logo abre el ajuste para escribir la IP de la PC a
+                  // mano, solo por si la app no la encuentra sola.
+                  child: GestureDetector(
+                    onLongPress: () => showServerSettingsDialog(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentSoft,
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusLg,
+                        ),
+                      ),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 72,
+                        height: 72,
+                      ),
                     ),
                   ),
                 ),
@@ -157,10 +165,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: AppSpacing.xxl),
                 AppTextField(
                   controller: _emailController,
-                  label: 'Correo electrónico',
+                  // Socios sin correo entran con su teléfono (el backend
+                  // distingue por la "@").
+                  label: 'Correo o teléfono',
                   keyboardType: TextInputType.emailAddress,
-                  prefixIcon: Icons.mail_outline,
-                  autofillHints: const [AutofillHints.email],
+                  prefixIcon: Icons.person_outline,
+                  autofillHints: const [
+                    AutofillHints.email,
+                    AutofillHints.telephoneNumber,
+                  ],
                   textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -210,8 +223,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text('¿No tienes cuenta?  Regístrate'),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                const Center(child: ServerStatusButton()),
               ],
             ),
           ),

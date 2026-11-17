@@ -57,6 +57,15 @@ void main() {
       expect(at15, greaterThan(at30));
       expect(at15, closeTo(42.5, 0.1)); // (100-15)/2
     });
+
+    test('en mujeres la fracción muscular de la masa magra es menor', () {
+      final male = BodyCalculationsService.calculateMusclePercentage(
+          weightKg: 60, bodyFatPercentage: 25);
+      final female = BodyCalculationsService.calculateMusclePercentage(
+          weightKg: 60, bodyFatPercentage: 25, gender: 'female');
+      expect(female, closeTo(33.8, 0.1)); // 75 * 0.45, igual que el backend
+      expect(female, lessThan(male));
+    });
   });
 
   group('calculateBMI', () {

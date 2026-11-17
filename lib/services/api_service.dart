@@ -23,7 +23,17 @@ class ApiService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return data as Map<String, dynamic>;
     }
-    throw Exception(data['detail'] ?? data['message'] ?? response.body);
+    throw Exception(_detailMessage(data['detail']) ?? data['message'] ?? response.body);
+  }
+
+  /// Los errores de validacion (422) traen `detail` como lista de objetos;
+  /// antes se mostraba tal cual ("[{type: value_error, ... Value error, Correo invalido}]").
+  static String? _detailMessage(dynamic detail) {
+    if (detail is List && detail.isNotEmpty && detail.first is Map) {
+      final msg = (detail.first as Map)['msg']?.toString() ?? '';
+      return msg.replaceFirst('Value error, ', '');
+    }
+    return detail?.toString();
   }
 
   /// Manual (correo/contraseña) registration. Creates the member as

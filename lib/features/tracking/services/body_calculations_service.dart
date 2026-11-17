@@ -42,17 +42,18 @@ class BodyCalculationsService {
     return double.parse(bodyFat.clamp(3.0, 60.0).toStringAsFixed(1));
   }
 
-  /// Porcentaje de masa muscular estimado a partir del % de grasa.
-  /// Aproximación: a menos grasa, más proporción de músculo.
+  /// Porcentaje de masa muscular (músculo esquelético) estimado a partir del
+  /// % de grasa: es una fracción de la masa libre de grasa, menor en mujeres
+  /// (Janssen 2000: ~38 % del peso en hombres y ~31 % en mujeres). Igual que
+  /// el backend (`backend/nutrition/body_composition.py`).
   static double calculateMusclePercentage({
     required double weightKg,
     required double bodyFatPercentage,
+    String gender = 'male',
   }) {
-    // Músculo esquelético ≈ mitad de la masa magra en un adulto medio.
     final leanMass = 100 - bodyFatPercentage;
-    final musclePercentage = leanMass * 0.5;
-
-    final clampedValue = musclePercentage.clamp(20.0, 55.0);
+    final share = gender == 'female' ? 0.45 : 0.50;
+    final clampedValue = (leanMass * share).clamp(15.0, 55.0);
     return double.parse(clampedValue.toStringAsFixed(1));
   }
 

@@ -69,6 +69,24 @@ void main() {
     expect(ProgressInsights(const []).weightGoal(80), isNull);
   });
 
+  test('meta nueva después de cumplir otra se mide desde su propio inicio', () {
+    // Bajó de 90 a 87; ahora quiere SUBIR a 89 (meta definida pesando 87).
+    // Antes se medía desde 90: salía "bajar" y "cumplida" de inmediato.
+    final g = ProgressInsights(losing).weightGoal(89, startKg: 87)!;
+    expect(g.start, 87);
+    expect(g.losing, isFalse);
+    expect(g.reached, isFalse);
+    expect(g.remaining, closeTo(2, 1e-9));
+    expect(g.fraction, 0.0);
+    final s = ProgressInsights(losing).summary(89, goalStartKg: 87)!;
+    expect(s.detail, contains('subir'));
+  });
+
+  test('corrección de meta en curso: el avance sigue contando desde el inicio', () {
+    final g = ProgressInsights(losing).weightGoal(84, startKg: 90)!;
+    expect(g.fraction, closeTo(0.5, 1e-9)); // 3 de 6 kg
+  });
+
   test('qué cambio cuenta como mejora', () {
     expect(ProgressInsights.isImprovement(grasa, -1), isTrue);
     expect(ProgressInsights.isImprovement(grasa, 1), isFalse);

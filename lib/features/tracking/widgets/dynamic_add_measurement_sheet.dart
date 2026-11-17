@@ -156,6 +156,7 @@ class _DynamicAddMeasurementSheetState extends State<DynamicAddMeasurementSheet>
         _calculatedMuscle = BodyCalculationsService.calculateMusclePercentage(
           weightKg: weight,
           bodyFatPercentage: _calculatedBodyFat!,
+          gender: _selectedGender,
         );
       } else {
         _calculatedMuscle = null;

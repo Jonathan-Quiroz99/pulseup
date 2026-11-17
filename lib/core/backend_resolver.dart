@@ -14,13 +14,15 @@ import 'api_config.dart';
 ///
 /// Orden de preferencia:
 ///   1. Servidor elegido a mano (ver [setManualOverride]); si existe, gana.
-///   2. Render ([ApiConfig.defaultBaseUrl]) si responde a tiempo.
+///   2. [ApiConfig.defaultBaseUrl] (la PC por cable USB, salvo que se
+///      compile con otra URL) si responde.
 ///   3. La PC con `npm run demo:lan` (repo LED GYM):
 ///      - la última IP de PC que funcionó,
 ///      - `127.0.0.1:8000` (cable USB + `adb reverse tcp:8000 tcp:8000`),
 ///      - `192.168.137.1:8000` (hotspot móvil de Windows),
 ///      - escaneo de la red WiFi / hotspot del celular buscando el puerto 8000.
-///   4. Si nada responde, se queda con Render (puede estar "despertando").
+///   4. Si nada responde, se queda con [ApiConfig.defaultBaseUrl] (la PC por
+///      cable): Render ya no se usa.
 ///
 /// Un servidor solo cuenta si `/api/health` dice `service: membersync-api` y
 /// `status: ok` (base de datos conectada), para no confundirlo con cualquier
@@ -140,13 +142,21 @@ class BackendResolver {
       prefs = await SharedPreferences.getInstance();
     } catch (_) {}
 
-    final manual = prefs?.getString(_prefsOverride);
+    var manual = prefs?.getString(_prefsOverride);
+    // La app ya no usa la nube: una elección manual vieja de Render (de
+    // antes de este cambio) se descarta para que no gane sobre la PC.
+    if (manual != null && manual.contains('onrender.com')) {
+      try {
+        await prefs?.remove(_prefsOverride);
+      } catch (_) {}
+      manual = null;
+    }
     if (manual != null && manual.isNotEmpty) {
       _apply(generation, manual);
       return ApiConfig.baseUrl;
     }
 
-    // Render y la búsqueda local corren en paralelo para no sumar tiempos.
+    // La PC por cable y la búsqueda en la red corren en paralelo.
     final primaryFuture =
         _isOurBackend(ApiConfig.defaultBaseUrl, _primaryTimeout);
     final localFuture = _findLocalBackend(prefs?.getString(_prefsLastLan));

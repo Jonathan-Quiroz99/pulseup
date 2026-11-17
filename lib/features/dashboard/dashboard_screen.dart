@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../core/navigation/app_screen.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../services/api_service.dart';
+import '../../widgets/ui/app_card.dart';
 import '../../widgets/ui/app_scaffold.dart';
 import '../../widgets/ui/section_header.dart';
 
@@ -30,6 +34,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final DashboardService _dashboardService = DashboardService();
+  final ApiService _apiService = ApiService();
 
   // Starts true: the first load runs from initState, where calling
   // setState() synchronously would throw.
@@ -76,6 +81,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           () => _dashboardService.fetchStats(token), null, 'stats'),
       _guard<int>(
           () => _dashboardService.fetchWeeklyCheckins(token), 0, 'checkins'),
+      // El estado del plan (Activo/Pendiente) venia solo de la sesion guardada
+      // al iniciar sesion: si recepcion activaba la membresia, el Inicio seguia
+      // diciendo "Pendiente" aunque se refrescara.
+      _guard<void>(() async {
+        await UserSession.mergeProfile(await _apiService.getMemberProfile(token));
+      }, null, 'profile'),
     ]);
 
     if (!mounted) return;
@@ -86,6 +97,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _weeklyCheckins = results[2] as int;
       _loading = false;
     });
+  }
+
+  /// Sin membresía activa no hay rutina ni progreso que mostrar: en su
+  /// lugar, qué falta para activarla.
+  Widget _activatePlanCard() {
+    final expired = UserSession.membershipStatus == 'Vencido';
+    return AppCard(
+      elevated: true,
+      borderColor: AppColors.accent.withValues(alpha: 0.5),
+      onTap: () => widget.onNavigate(AppScreen.billing),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.accentSoft,
+            ),
+            child: const Icon(Icons.lock_open_rounded, color: AppColors.accent),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(expired ? 'Renueva tu membresía' : 'Activa tu membresía',
+                    style: AppTextStyles.titleMd),
+                const SizedBox(height: 2),
+                Text(
+                  expired
+                      ? 'Renueva para volver a tus rutinas, progreso y nutrición.'
+                      : 'Rutinas, progreso y nutrición se desbloquean cuando tu '
+                          'pago aparezca como pagado.',
+                  style: AppTextStyles.bodySm,
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: AppColors.textMuted),
+        ],
+      ),
+    );
   }
 
   @override
@@ -111,10 +164,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               status: UserSession.membershipStatus,
             ),
             const SizedBox(height: AppSpacing.lg),
-            WorkoutCard(workout: _workout, onNavigate: widget.onNavigate),
-            const SizedBox(height: AppSpacing.xl),
-            const SectionHeader(title: 'Tu progreso'),
-            StatsRow(stats: _stats),
+            if (UserSession.isActiveMember) ...[
+              WorkoutCard(workout: _workout, onNavigate: widget.onNavigate),
+              const SizedBox(height: AppSpacing.xl),
+              const SectionHeader(title: 'Tu progreso'),
+              StatsRow(stats: _stats),
+            ] else
+              _activatePlanCard(),
             const SizedBox(height: AppSpacing.xl),
             const SectionHeader(title: 'Accesos rápidos'),
             QuickActionsGrid(onNavigate: widget.onNavigate),

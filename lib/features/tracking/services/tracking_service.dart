@@ -92,8 +92,9 @@ class TrackingService {
     }
   }
 
-  // Guardar altura del usuario en el backend
-  Future<void> saveUserHeight(String token, double heightCm) async {
+  /// Guarda altura y/o sexo ('male' | 'female') en el perfil del socio. Son
+  /// los mismos datos que usa Nutrición, así no se piden dos veces.
+  Future<void> saveUserBody(String token, {double? heightCm, String? sex}) async {
     final response = await http.post(
       Uri.parse("$baseUrl/api/mobile/me/height"),
       headers: {
@@ -101,7 +102,8 @@ class TrackingService {
         "Content-Type": "application/json",
       },
       body: jsonEncode({
-        "altura_cm": heightCm,
+        "altura_cm": ?heightCm,
+        "sexo": ?sex,
       }),
     ).timeout(apiTimeout);
 
@@ -165,8 +167,10 @@ class TrackingService {
     }
   }
 
-  /// Meta de peso del socio (kg) o null si no ha definido una.
-  Future<double?> getWeightGoal(String token) async {
+  /// Meta de peso del socio y el peso desde el que empezó ESA meta (lo
+  /// guarda el servidor al definirla). Ambos null si no hay meta; `start`
+  /// null en metas viejas o sin mediciones (la app usa la primera medición).
+  Future<({double? goal, double? start})> getWeightGoal(String token) async {
     final response = await http.get(
       Uri.parse("$baseUrl/api/mobile/me/weight-goal"),
       headers: {"Authorization": "Bearer $token"},
@@ -177,11 +181,17 @@ class TrackingService {
     if (response.statusCode != 200) {
       throw Exception("No se pudo cargar tu meta");
     }
-    return (jsonDecode(response.body)['meta_peso_kg'] as num?)?.toDouble();
+    return _goalFromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  /// [goalKg] null borra la meta.
-  Future<void> saveWeightGoal(String token, double? goalKg) async {
+  static ({double? goal, double? start}) _goalFromJson(Map<String, dynamic> data) => (
+        goal: (data['meta_peso_kg'] as num?)?.toDouble(),
+        start: (data['meta_inicio_kg'] as num?)?.toDouble(),
+      );
+
+  /// [goalKg] null borra la meta. Devuelve la meta guardada con su punto de
+  /// partida (el servidor decide si conserva el anterior o empieza de nuevo).
+  Future<({double? goal, double? start})> saveWeightGoal(String token, double? goalKg) async {
     final response = await http.put(
       Uri.parse("$baseUrl/api/mobile/me/weight-goal"),
       headers: {
@@ -196,10 +206,11 @@ class TrackingService {
     if (response.statusCode != 200) {
       throw Exception("No se pudo guardar tu meta");
     }
+    return _goalFromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  // Obtener altura del usuario
-  Future<double?> getUserHeight(String token) async {
+  /// Altura y sexo guardados del socio (null si no se pudieron leer).
+  Future<({double? heightCm, String? sex})?> getUserBody(String token) async {
     try {
       final response = await http.get(
         Uri.parse("$baseUrl/api/mobile/me/height"),
@@ -212,7 +223,10 @@ class TrackingService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return (data['altura_cm'] as num?)?.toDouble();
+        return (
+          heightCm: (data['altura_cm'] as num?)?.toDouble(),
+          sex: data['sexo'] as String?,
+        );
       }
     } catch (e) {
       debugPrint('Error getting height: $e');

@@ -8,6 +8,7 @@ import '../../../core/api_config.dart';
 import '../../../core/backend_resolver.dart';
 import '../../../core/http_helpers.dart';
 import '../../auth/user_session.dart';
+import '../../tracking/models/body_composition.dart';
 import '../models/daily_nutrition.dart';
 import '../models/meal.dart';
 import '../models/meal_analysis.dart';
@@ -190,6 +191,80 @@ class NutritionService {
       _throwFromBody(res, 'No se pudo analizar la imagen. Inténtalo de nuevo.');
     }
     _throwFromBody(res, 'No se pudo analizar la imagen');
+  }
+
+  /// % de grasa y músculo estimados con la foto de progreso + las medidas.
+  /// El servidor responde aunque la IA falle (con solo las medidas), así que
+  /// la PC con IA solo se busca si el servidor actual no contesta o no
+  /// conoce el endpoint (versión vieja).
+  Future<BodyComposition> analyzeBodyComposition({
+    required String imageDataUri,
+    required String sex,
+    required int age,
+    required double weightKg,
+    required double heightCm,
+    double? waistCm,
+  }) async {
+    final body = jsonEncode({
+      'imageBase64': imageDataUri,
+      'sexo': sex,
+      'edad': age,
+      'pesoKg': weightKg,
+      'alturaCm': heightCm,
+      'cinturaCm': ?waistCm,
+    });
+    Future<http.Response> post(String baseUrl) => http
+        .post(
+          Uri.parse('$baseUrl/api/mobile/nutrition/body-composition'),
+          headers: _authHeaders(json: true),
+          body: body,
+        )
+        // Dos pasadas de Gemma (filtro + estimación); la primera vez carga
+        // el modelo.
+        .timeout(const Duration(seconds: 120));
+
+    final primary = ApiConfig.baseUrl;
+    http.Response? res;
+    try {
+      res = await post(primary);
+      await checkAuthResponse(res);
+    } on TimeoutException {
+      res = null;
+    } on SocketException {
+      res = null;
+    } on http.ClientException {
+      res = null;
+    }
+
+    if (res == null || res.statusCode == 404 || res.statusCode >= 500) {
+      final pc = await BackendResolver.findAiServer();
+      if (pc != null && pc != primary) {
+        try {
+          final pcRes = await post(pc);
+          if (pcRes.statusCode != 401) res = pcRes;
+        } catch (_) {
+          BackendResolver.forgetAiServer();
+        }
+      }
+    }
+    if (res == null) {
+      throw Exception('No hay conexión con el servidor. Inténtalo de nuevo.');
+    }
+    if (res.statusCode == 200) {
+      return BodyComposition.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    if (res.statusCode == 422) {
+      // Foto inválida -> texto del servidor; datos fuera de rango -> FastAPI
+      // manda una lista de errores que no sirve mostrar tal cual.
+      String? detail;
+      try {
+        final d = jsonDecode(res.body)['detail'];
+        if (d is String) detail = d;
+      } catch (_) {}
+      throw Exception(detail ??
+          'Revisa tu peso, altura y medidas en Progreso (algún dato está fuera de rango).');
+    }
+    _throwFromBody(res, 'No se pudo analizar la foto. Inténtalo de nuevo.');
   }
 
   Future<http.Response> _postAnalyze(String baseUrl, String imageDataUri,

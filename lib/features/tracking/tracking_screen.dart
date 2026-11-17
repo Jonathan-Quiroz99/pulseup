@@ -11,12 +11,17 @@ import '../../services/api_service.dart';
 import '../../widgets/ui/app_card.dart';
 import '../../widgets/ui/app_scaffold.dart';
 import '../../widgets/ui/section_header.dart';
+import '../../core/http_helpers.dart';
+import '../../widgets/ui/app_button.dart';
 import '../auth/user_session.dart';
+import '../nutrition/services/nutrition_service.dart';
+import 'models/body_composition.dart';
 import 'models/body_measurement.dart';
 import 'models/progress_photo.dart';
 import 'services/tracking_service.dart';
 import 'services/body_calculations_service.dart';
 import 'services/progress_insights.dart';
+import 'widgets/body_composition_sheet.dart';
 import 'widgets/dynamic_add_measurement_sheet.dart';
 import 'widgets/goal_card.dart';
 import 'widgets/measurement_tile.dart';
@@ -41,6 +46,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   String _userGender = 'male';
   bool _autoCalc = true;
   double? _weightGoal;
+  double? _goalStart; // peso con el que se definió la meta actual
   String _metricKey = 'peso';
   List<ProgressPhoto> _photos = [];
   bool _uploadingPhoto = false;
@@ -118,7 +124,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   }
 
   Future<void> _openPhoto(ProgressPhoto photo) async {
-    final delete = await showDialog<bool>(
+    final action = await showDialog<String>(
       context: context,
       builder: (ctx) => Dialog(
         backgroundColor: AppColors.surfaceHigh,
@@ -126,17 +132,28 @@ class _TrackingScreenState extends State<TrackingScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusMd)),
-              child: InteractiveViewer(child: Image.memory(photo.bytes, fit: BoxFit.contain)),
+            Flexible(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusMd)),
+                child: InteractiveViewer(child: Image.memory(photo.bytes, fit: BoxFit.contain)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
+              child: AppButton(
+                label: 'Analizar composición con IA',
+                icon: Icons.auto_awesome,
+                expanded: true,
+                onPressed: () => Navigator.pop(ctx, 'analyze'),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
               child: Row(
                 children: [
                   Expanded(child: Text(ProgressPhotosCard.dateLabel(photo), style: AppTextStyles.titleMd)),
-                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Borrar')),
-                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cerrar')),
+                  TextButton(onPressed: () => Navigator.pop(ctx, 'delete'), child: const Text('Borrar')),
+                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
                 ],
               ),
             ),
@@ -144,7 +161,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
         ),
       ),
     );
-    if (delete != true) return;
+    if (action == 'analyze') return _analyzePhoto(photo);
+    if (action != 'delete') return;
     final token = UserSession.token;
     if (token == null) return;
     try {
@@ -152,6 +170,115 @@ class _TrackingScreenState extends State<TrackingScreen> {
       if (mounted) setState(() => _photos = _photos.where((p) => p.id != photo.id).toList());
     } catch (e) {
       _showSnack('No se pudo borrar la foto. Inténtalo de nuevo.');
+    }
+  }
+
+  /// La medición más cercana a la fecha de la foto (el peso y la cintura de
+  /// ese momento, no los de hoy si la foto es vieja).
+  BodyMeasurement? _measurementNear(ProgressPhoto photo) {
+    final photoDate = photo.dateTime ?? DateTime.now();
+    BodyMeasurement? best;
+    int? bestDiff;
+    for (final m in _measurements) {
+      final d = DateTime.tryParse(m.date);
+      if (d == null || m.weightKg <= 0) continue;
+      final diff = d.difference(photoDate).inDays.abs();
+      if (bestDiff == null || diff < bestDiff) {
+        best = m;
+        bestDiff = diff;
+      }
+    }
+    return best;
+  }
+
+  Future<void> _analyzePhoto(ProgressPhoto photo) async {
+    final measurement = _measurementNear(photo);
+    if (measurement == null) {
+      _showSnack('Primero registra tu peso en Progreso (botón +).');
+      return;
+    }
+    if (_userHeight == null) {
+      _showSnack('Primero registra tu altura.');
+      _showEditHeightDialog();
+      return;
+    }
+    if (_userAge == null) {
+      _showSnack('Agrega tu fecha de nacimiento en tu perfil para calcularlo.');
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Row(
+            children: [
+              SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5)),
+              SizedBox(width: AppSpacing.lg),
+              Expanded(child: Text('Analizando tu foto y tus medidas…')),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    BodyComposition? result;
+    String? error;
+    try {
+      result = await NutritionService().analyzeBodyComposition(
+        imageDataUri: 'data:image/jpeg;base64,${base64Encode(photo.bytes)}',
+        sex: _userGender,
+        age: _userAge!,
+        weightKg: measurement.weightKg,
+        heightCm: _userHeight!,
+        waistCm: measurement.waist,
+      );
+    } catch (e) {
+      error = friendlyError(e);
+    }
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pop(); // cierra "Analizando…"
+    if (result == null) {
+      _showSnack(error ?? 'No se pudo analizar la foto.');
+      return;
+    }
+
+    final measuredAt = DateTime.tryParse(measurement.date);
+    // Guardar crea una medición con fecha de HOY: solo tiene sentido si el
+    // peso y la cintura usados son de estos días.
+    final recent = measuredAt != null && DateTime.now().difference(measuredAt).inDays <= 3;
+    final save = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceHigh,
+      builder: (_) => BodyCompositionSheet(
+        result: result!,
+        measurementLabel: ProgressPhotosCard.dayLabel(measurement.date),
+        canSave: recent,
+      ),
+    );
+    if (save != true) return;
+
+    final token = UserSession.token;
+    if (token == null) return;
+    try {
+      await _trackingService.addMeasurement(
+        token: token,
+        weightKg: measurement.weightKg,
+        bodyFat: result.bodyFatPct,
+        muscle: result.musclePct,
+        waist: measurement.waist,
+        heightCm: _userHeight,
+        notes: 'Grasa y músculo estimados con foto + medidas',
+      );
+      _loadMeasurements();
+      _showSnack('Guardado en tus medidas.');
+    } catch (e) {
+      if (!e.toString().contains('expir')) {
+        _showSnack('No se pudo guardar. Inténtalo de nuevo.');
+      }
     }
   }
 
@@ -185,7 +312,12 @@ class _TrackingScreenState extends State<TrackingScreen> {
     if (token == null) return;
     try {
       final goal = await _trackingService.getWeightGoal(token);
-      if (mounted) setState(() => _weightGoal = goal);
+      if (mounted) {
+        setState(() {
+          _weightGoal = goal.goal;
+          _goalStart = goal.start;
+        });
+      }
     } catch (e) {
       // Sin meta la pantalla funciona igual (muestra "Define tu meta").
       debugPrint('Tracking: goal failed: $e');
@@ -193,15 +325,21 @@ class _TrackingScreenState extends State<TrackingScreen> {
   }
 
   Future<void> _showEditGoalDialog() async {
+    // Meta ya cumplida -> se define una NUEVA (campo vacío): empieza desde
+    // el peso actual. Si está en curso, es una corrección y conserva el inicio.
+    final reached = ProgressInsights(_measurements)
+            .weightGoal(_weightGoal, startKg: _goalStart)
+            ?.reached ??
+        false;
     final controller = TextEditingController(
-      text: _weightGoal?.toStringAsFixed(1) ?? '',
+      text: reached ? '' : _weightGoal?.toStringAsFixed(1) ?? '',
     );
     final formKey = GlobalKey<FormState>();
     // Devuelve el valor nuevo, NaN para "quitar meta" o null si cancela.
     final result = await showDialog<double>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Meta de peso'),
+        title: Text(reached ? 'Nueva meta de peso' : 'Meta de peso'),
         content: Form(
           key: formKey,
           child: TextFormField(
@@ -246,8 +384,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
     if (token == null) return;
     final newGoal = result.isNaN ? null : result;
     try {
-      await _trackingService.saveWeightGoal(token, newGoal);
-      if (mounted) setState(() => _weightGoal = newGoal);
+      final saved = await _trackingService.saveWeightGoal(token, newGoal);
+      if (mounted) {
+        setState(() {
+          _weightGoal = saved.goal;
+          _goalStart = saved.start;
+        });
+      }
     } catch (e) {
       _showSnack('No se pudo guardar tu meta. Inténtalo de nuevo.');
     }
@@ -284,9 +427,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
     // Height and profile load independently — the estimate should still
     // work off whichever one succeeds.
-    double? height;
+    ({double? heightCm, String? sex})? body;
     try {
-      height = await _trackingService.getUserHeight(token);
+      body = await _trackingService.getUserBody(token);
     } catch (e) {
       debugPrint('Tracking: height failed: $e');
     }
@@ -302,7 +445,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
     if (!mounted) return;
     setState(() {
-      if (height != null) _userHeight = height;
+      if (body?.heightCm != null) _userHeight = body!.heightCm;
+      if (body?.sex != null) _userGender = body!.sex!;
       _userAge = _calculateAge(birthDate);
     });
   }
@@ -379,6 +523,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
         muscle = BodyCalculationsService.calculateMusclePercentage(
           weightKg: weight,
           bodyFatPercentage: bodyFat,
+          gender: _userGender,
         );
       }
     }
@@ -430,7 +575,7 @@ Future<void> _saveUserHeight(double height) async {
   if (token == null) return;
   
   try {
-    await _trackingService.saveUserHeight(token, height);
+    await _trackingService.saveUserBody(token, heightCm: height);
     if (!mounted) return;
     setState(() {
       _userHeight = height;
@@ -516,7 +661,15 @@ void _openAddMeasurementSheet() {
         initialGender: _userGender,
         onSaveHeight: _saveUserHeight,
         onGenderChanged: (gender) {
+          if (gender == _userGender) return;
           _userGender = gender;
+          // Se guarda en el perfil: la próxima vez (y en Nutrición) ya viene elegido.
+          final token = UserSession.token;
+          if (token != null) {
+            _trackingService
+                .saveUserBody(token, sex: gender)
+                .catchError((e) => debugPrint('Error guardando sexo: $e'));
+          }
         },
         onAgeChanged: (age) {
           _userAge = age;
@@ -713,9 +866,9 @@ void _openAddMeasurementSheet() {
     final points = insights.series(metric);
     final changes = insights.changes(metric);
     final weightMetric = ProgressMetric.all.first;
-    final goalProgress = insights.weightGoal(_weightGoal);
+    final goalProgress = insights.weightGoal(_weightGoal, startKg: _goalStart);
     final daysSince = insights.daysSinceLast();
-    final summary = insights.summary(_weightGoal);
+    final summary = insights.summary(_weightGoal, goalStartKg: _goalStart);
 
     return AppScaffold(
       padding: EdgeInsets.zero,

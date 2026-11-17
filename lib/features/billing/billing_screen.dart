@@ -314,8 +314,21 @@ class _BillingScreenState
                           ),
                         ),
                         const SizedBox(width: AppSpacing.sm),
-                        Text(payment['monto'] as String? ?? '',
-                            style: AppTextStyles.statSm),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(payment['monto'] as String? ?? '',
+                                style: AppTextStyles.statSm),
+                            // Una compra "pagar en el gimnasio" queda Pendiente:
+                            // sin esto se veia igual que un pago ya hecho.
+                            if ((payment['estado'] as String? ?? 'Pagado') !=
+                                'Pagado') ...[
+                              const SizedBox(height: AppSpacing.xs),
+                              StatusBadge.fromEstado(
+                                  payment['estado'] as String?),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
                   ),

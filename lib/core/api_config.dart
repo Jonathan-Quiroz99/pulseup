@@ -2,18 +2,21 @@
 
 class ApiConfig {
 
-  // Backend en Render (producción). Se puede sobreescribir en tiempo de build:
-  //   flutter run --dart-define=API_BASE_URL=http://localhost:8000
+  // La app SIEMPRE habla con la PC del gimnasio (`npm run demo:lan` /
+  // `npm run local` en el repo LED GYM), nunca con Render: así el entorno de
+  // la presentación es uno solo y no depende de internet.
   //
-  // Ya NO hace falta recompilar para el demo sin internet: al arrancar,
-  // [BackendResolver] (backend_resolver.dart) busca solo el servidor que
-  // responda — Render, la PC por cable USB (`adb reverse`), el hotspot de
-  // Windows o cualquier PC de la red WiFi del celular corriendo
-  // `npm run demo:lan` — y actualiza [baseUrl]. Ver
-  // docs/demo-sin-internet.md en el repo de LED GYM (Proyecto Integrador).
+  // Por defecto: la PC por cable USB (`adb reverse tcp:8000 tcp:8000`). Al
+  // arrancar, [BackendResolver] (backend_resolver.dart) también busca la PC
+  // en el hotspot de Windows o en la WiFi del celular y actualiza [baseUrl].
+  // Ver docs/demo-sin-internet.md en el repo de LED GYM (Proyecto Integrador).
+  //
+  // Para volver a la nube habría que compilar con
+  //   --dart-define=API_BASE_URL=https://membersync-byso.onrender.com
+  // (y aun así el resolver prefiere una PC si la encuentra).
   static const String defaultBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://membersync-byso.onrender.com',
+    defaultValue: 'http://127.0.0.1:8000',
   );
 
   /// Servidor en uso ahora mismo. Lo cambia [BackendResolver]; por eso los

@@ -28,9 +28,12 @@ class ProgressPhotosCard extends StatelessWidget {
 
   static const _months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
-  static String dateLabel(ProgressPhoto p) {
-    final d = p.dateTime;
-    return d == null ? p.date : '${d.day} ${_months[d.month - 1]}';
+  static String dateLabel(ProgressPhoto p) => dayLabel(p.date);
+
+  /// "2026-11-14" -> "14 nov" (o el texto tal cual si no es fecha).
+  static String dayLabel(String isoDate) {
+    final d = DateTime.tryParse(isoDate);
+    return d == null ? isoDate : '${d.day} ${_months[d.month - 1]}';
   }
 
   /// Peso medido el mismo día o hasta 7 días de diferencia, si lo hay.

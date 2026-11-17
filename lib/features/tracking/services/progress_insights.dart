@@ -126,13 +126,15 @@ class ProgressInsights {
     return num / den * 7;
   }
 
-  GoalProgress? weightGoal(double? goal) {
+  /// [startKg] = peso con el que se definió ESTA meta (lo guarda el
+  /// servidor). Sin él (metas viejas) se usa la primera medición, como antes.
+  GoalProgress? weightGoal(double? goal, {double? startKg}) {
     if (goal == null) return null;
     final weight = ProgressMetric.all.first;
     final s = series(weight);
     if (s.isEmpty) return null;
 
-    final start = s.first.value;
+    final start = startKg ?? s.first.value;
     final current = s.last.value;
     final totalDistance = (start - goal).abs();
     // Meta igual al peso inicial, o ya cruzada en la dirección elegida.
@@ -167,7 +169,7 @@ class ProgressInsights {
 
   /// Resumen en palabras ("Has bajado 1.2 kg en 3 semanas") para quien no
   /// quiere leer gráficas. Null si no hay mediciones.
-  ({String title, String detail})? summary(double? goal) {
+  ({String title, String detail})? summary(double? goal, {double? goalStartKg}) {
     final s = series(ProgressMetric.all.first);
     if (s.isEmpty) return null;
     String kg(double v) => '${v.abs().toStringAsFixed(1)} kg';
@@ -197,12 +199,15 @@ class ProgressInsights {
     if (goal == null) {
       return (title: title, detail: 'Define una meta de peso para saber si vas por buen camino.');
     }
-    final g = weightGoal(goal)!;
+    final g = weightGoal(goal, startKg: goalStartKg)!;
     if (g.reached) {
       return (title: title, detail: '¡Llegaste a tu meta de ${kg(goal)}! Puedes definir una nueva.');
     }
     final rate = weeklyRate(ProgressMetric.all.first);
-    final towardGoal = g.losing ? delta < -0.05 : delta > 0.05;
+    // Avance desde que se definió ESTA meta (no desde la primera medición:
+    // tras bajar y luego querer subir, el total histórico apunta al revés).
+    final sinceGoal = g.current - g.start;
+    final towardGoal = g.losing ? sinceGoal < -0.05 : sinceGoal > 0.05;
     if (!towardGoal) {
       return (
         title: title,

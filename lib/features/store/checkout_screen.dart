@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/http_helpers.dart';
 import '../../services/api_service.dart';
 import '../auth/user_session.dart';
 import 'controllers/cart_controller.dart';
@@ -53,7 +54,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al registrar la compra: $e')),
+          SnackBar(content: Text('Error al registrar la compra: ${friendlyError(e)}')),
         );
       }
     } finally {
@@ -94,7 +95,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo iniciar el pago: $e')),
+        SnackBar(content: Text('No se pudo iniciar el pago: ${friendlyError(e)}')),
       );
     } finally {
       if (mounted) {
@@ -158,7 +159,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al registrar la compra: $e')),
+          SnackBar(content: Text('Error al registrar la compra: ${friendlyError(e)}')),
         );
       }
     }

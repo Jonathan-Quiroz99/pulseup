@@ -14,9 +14,9 @@ import 'services/nutrition_calculator.dart';
 import 'services/nutrition_service.dart';
 import 'widgets/nutrition_disclaimer.dart';
 
-/// Formulario del perfil de nutrición. Prellena edad / peso / altura desde
-/// los datos que MemberSync ya tiene y solo pide lo que falta (sexo, nivel
-/// de actividad y objetivo).
+/// Formulario del perfil de nutrición. Prellena sexo / edad / peso / altura
+/// desde los datos que MemberSync ya tiene (Progreso, bienvenida) y solo pide
+/// lo que falta (nivel de actividad y objetivo).
 class NutritionProfileScreen extends StatefulWidget {
   final NutritionProfile profile;
 
@@ -54,7 +54,7 @@ class _NutritionProfileScreenState extends State<NutritionProfileScreen> {
     final p = widget.profile;
     final m = p.memberData;
 
-    _sex = Sex.fromId(p.sex);
+    _sex = Sex.fromId(p.sex ?? m.sex);
     _activity = ActivityLevel.fromId(p.activityLevel);
     _goal = FitnessGoal.fromId(p.goal);
 

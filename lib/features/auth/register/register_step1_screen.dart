@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/birthdate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -32,12 +33,11 @@ class _RegisterStep1ScreenState extends State<RegisterStep1Screen> {
   @override
   void initState() {
     super.initState();
-    _nombreController =
-        TextEditingController(text: widget.initialData.nombre);
-    _apellidosController =
-        TextEditingController(text: widget.initialData.apellidos);
-    _correoController =
-        TextEditingController(text: widget.initialData.correo);
+    _nombreController = TextEditingController(text: widget.initialData.nombre);
+    _apellidosController = TextEditingController(
+      text: widget.initialData.apellidos,
+    );
+    _correoController = TextEditingController(text: widget.initialData.correo);
   }
 
   @override
@@ -53,19 +53,28 @@ class _RegisterStep1ScreenState extends State<RegisterStep1Screen> {
 
   Future<void> _pickBirthDate() async {
     final now = DateTime.now();
+    final latest = latestBirthdate(now);
+    final earliest = earliestBirthdate(now);
+    final current = DateTime.tryParse(_fechaController.text.trim());
+    final initial =
+        (current != null &&
+            !current.isAfter(latest) &&
+            !current.isBefore(earliest))
+        ? current
+        : DateTime(now.year - 18, now.month, now.day.clamp(1, 28));
+    // Solo se puede elegir una fecha dentro del rango de edad permitido
+    // (antes el límite era "hoy" y se podía poner que naciste en 2025).
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime(now.year - 18, now.month, now.day),
-      firstDate: DateTime(1900),
-      lastDate: now,
+      initialDate: initial,
+      firstDate: earliest,
+      lastDate: latest,
+      initialDatePickerMode: DatePickerMode.year,
       helpText: 'Fecha de nacimiento',
     );
     if (picked == null) return;
 
-    final formatted = '${picked.year.toString().padLeft(4, '0')}-'
-        '${picked.month.toString().padLeft(2, '0')}-'
-        '${picked.day.toString().padLeft(2, '0')}';
-    setState(() => _fechaController.text = formatted);
+    setState(() => _fechaController.text = formatBirthdate(picked));
   }
 
   static final _emailRe = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
@@ -77,20 +86,24 @@ class _RegisterStep1ScreenState extends State<RegisterStep1Screen> {
     final telefono = _telefonoController.text.trim();
     final fecha = _fechaController.text.trim();
 
-    if (nombre.isEmpty || apellidos.isEmpty || correo.isEmpty) {
-      _showError('Completa nombre, apellidos y correo');
+    if (nombre.isEmpty || apellidos.isEmpty) {
+      _showError('Completa nombre y apellidos');
       return;
     }
-    if (!widget.initialData.isGoogle && !_emailRe.hasMatch(correo)) {
+    // El correo es opcional: sin correo la cuenta queda ligada al teléfono
+    // (para socios que no usan correo) y entran con teléfono + contraseña.
+    if (correo.isNotEmpty && !_emailRe.hasMatch(correo)) {
       _showError('Ingresa un correo válido');
       return;
     }
-    if (telefono.isEmpty || telefono.replaceAll(RegExp(r'\D'), '').length < 10) {
+    if (telefono.isEmpty ||
+        telefono.replaceAll(RegExp(r'\D'), '').length < 10) {
       _showError('Ingresa un teléfono válido (10 dígitos)');
       return;
     }
-    if (fecha.isEmpty) {
-      _showError('Selecciona tu fecha de nacimiento');
+    final fechaError = birthdateError(fecha);
+    if (fechaError != null) {
+      _showError(fechaError);
       return;
     }
     if (!widget.initialData.isGoogle && _passwordController.text.length < 6) {
@@ -118,8 +131,7 @@ class _RegisterStep1ScreenState extends State<RegisterStep1Screen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   final _googleAuth = GoogleAuthService();
@@ -194,9 +206,12 @@ class _RegisterStep1ScreenState extends State<RegisterStep1Screen> {
                     const Expanded(child: Divider(color: AppColors.hairline)),
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md),
-                      child: Text('o con tu correo',
-                          style: AppTextStyles.label),
+                        horizontal: AppSpacing.md,
+                      ),
+                      child: Text(
+                        'o con tus datos',
+                        style: AppTextStyles.label,
+                      ),
                     ),
                     const Expanded(child: Divider(color: AppColors.hairline)),
                   ],
@@ -219,7 +234,12 @@ class _RegisterStep1ScreenState extends State<RegisterStep1Screen> {
               const SizedBox(height: AppSpacing.md),
               AppTextField(
                 controller: _correoController,
-                label: 'Correo',
+                label: widget.initialData.isGoogle
+                    ? 'Correo'
+                    : 'Correo (opcional)',
+                helperText: widget.initialData.isGoogle
+                    ? null
+                    : 'Si no tienes correo, entrarás con tu teléfono',
                 enabled: !widget.initialData.isGoogle,
                 keyboardType: TextInputType.emailAddress,
                 autofillHints: const [AutofillHints.email],

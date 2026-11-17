@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import 'backend_resolver.dart';
@@ -26,10 +27,19 @@ String friendlyError(Object error) {
       error is http.ClientException ||
       error is HandshakeException ||
       error is TimeoutException) {
-    // Puede que la red haya cambiado (p. ej. Render bloqueado en la WiFi del
-    // lugar): se busca otro servidor en segundo plano para el reintento.
+    // Puede que la red haya cambiado (cable desconectado, otra WiFi): se
+    // busca la PC de nuevo en segundo plano para el reintento.
     BackendResolver.resolveInBackground();
-    return 'No pudimos conectar con el servidor. Revisa tu conexión a internet.';
+    return 'No pudimos conectar con el servidor del gimnasio. Revisa que la PC '
+        'esté encendida y el celular conectado (cable USB o la misma WiFi).';
+  }
+  // Errores del plugin de Google Sign-In: antes salia el texto crudo
+  // "PlatformException(network_error, m1.d: 7: , null, null)".
+  if (error is PlatformException) {
+    if (error.code == 'network_error') {
+      return 'Google necesita internet en el celular. Sin conexión, entra con tu correo y contraseña.';
+    }
+    return 'No se pudo iniciar sesión con Google. Intenta de nuevo.';
   }
   var msg = error.toString();
   // "Exception: algo" -> "algo"

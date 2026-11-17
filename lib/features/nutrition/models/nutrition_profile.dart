@@ -6,6 +6,7 @@ import 'nutrition_targets.dart';
 class MemberNutritionData {
   final int? age;
   final double? heightCm;
+  final String? sex;
   final double? weightKg;
   final double? bodyFatPct;
   final double? musclePct;
@@ -13,6 +14,7 @@ class MemberNutritionData {
   const MemberNutritionData({
     this.age,
     this.heightCm,
+    this.sex,
     this.weightKg,
     this.bodyFatPct,
     this.musclePct,
@@ -22,6 +24,7 @@ class MemberNutritionData {
     return MemberNutritionData(
       age: json['age'] == null ? null : asInt(json['age']),
       heightCm: asDoubleOrNull(json['heightCm']),
+      sex: json['sexo'] as String?,
       weightKg: asDoubleOrNull(json['weightKg']),
       bodyFatPct: asDoubleOrNull(json['bodyFatPct']),
       musclePct: asDoubleOrNull(json['musclePct']),

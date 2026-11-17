@@ -10,6 +10,11 @@ import '../models/meal_food.dart';
 /// Tarjeta editable de un alimento detectado. El usuario puede corregir
 /// nombre, gramos, calorías y macros; cada cambio se refleja en el modelo
 /// y dispara [onChanged] para recalcular los totales de la comida.
+///
+/// Al cambiar los GRAMOS, calorías y macros se recalculan en proporción
+/// (la IA dijo 250 g de pollo y son 180 g -> todo x 0.72). La proporción
+/// sale de la densidad por gramo: la de la IA al inicio, y si el usuario
+/// corrige a mano una caloría o macro, esa corrección pasa a ser la base.
 class AnalyzedFoodEditor extends StatefulWidget {
   final MealFood food;
   final VoidCallback onChanged;
@@ -34,6 +39,10 @@ class _AnalyzedFoodEditorState extends State<AnalyzedFoodEditor> {
   late final TextEditingController _carbs;
   late final TextEditingController _fat;
 
+  /// Kcal / proteína / carbos / grasa por gramo. `null` mientras no se sepa
+  /// (alimento agregado a mano sin gramos todavía).
+  final Map<String, double?> _perGram = {};
+
   @override
   void initState() {
     super.initState();
@@ -44,7 +53,47 @@ class _AnalyzedFoodEditorState extends State<AnalyzedFoodEditor> {
     _protein = TextEditingController(text: _fmt(f.protein));
     _carbs = TextEditingController(text: _fmt(f.carbs));
     _fat = TextEditingController(text: _fmt(f.fat));
+    _rememberDensities();
   }
+
+  Map<String, TextEditingController> get _nutrients => {
+        'kcal': _kcal,
+        'protein': _protein,
+        'carbs': _carbs,
+        'fat': _fat,
+      };
+
+  /// Guarda cuánto aporta cada gramo con los valores actuales.
+  void _rememberDensities() {
+    final grams = _num(_grams);
+    if (grams <= 0) return;
+    _nutrients.forEach((key, c) => _perGram[key] = _num(c) / grams);
+  }
+
+  void _onGramsChanged() {
+    final grams = _num(_grams);
+    // Campo vacío o 0 mientras escribe: no se borra nada; al escribir los
+    // gramos nuevos se recalcula con la densidad guardada.
+    if (grams > 0 && _perGram.isNotEmpty) {
+      _nutrients.forEach((key, c) {
+        final density = _perGram[key];
+        if (density != null) c.text = _fmt(_round1(density * grams));
+      });
+    } else if (grams > 0) {
+      // Primera vez que hay gramos (alimento agregado a mano): base nueva.
+      _rememberDensities();
+    }
+    _pushToModel();
+  }
+
+  void _onNutrientChanged() {
+    // Corrección manual: la nueva proporción manda en los siguientes cambios
+    // de gramos.
+    _rememberDensities();
+    _pushToModel();
+  }
+
+  double _round1(double v) => (v * 10).roundToDouble() / 10;
 
   @override
   void dispose() {
@@ -107,7 +156,7 @@ class _AnalyzedFoodEditorState extends State<AnalyzedFoodEditor> {
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
-              _field('Gramos', _grams),
+              _field('Gramos', _grams, onChanged: _onGramsChanged),
               const SizedBox(width: AppSpacing.sm),
               _field('Kcal', _kcal),
             ],
@@ -127,11 +176,12 @@ class _AnalyzedFoodEditorState extends State<AnalyzedFoodEditor> {
     );
   }
 
-  Widget _field(String label, TextEditingController controller) {
+  Widget _field(String label, TextEditingController controller,
+      {VoidCallback? onChanged}) {
     return Expanded(
       child: TextField(
         controller: controller,
-        onChanged: (_) => _pushToModel(),
+        onChanged: (_) => (onChanged ?? _onNutrientChanged)(),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: [
           FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),

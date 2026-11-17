@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/backend_resolver.dart';
+import '../../../core/http_helpers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -43,8 +45,23 @@ class _RegisterStep2ScreenState extends State<RegisterStep2Screen> {
   }
 
   Future<void> _loadPlans() async {
+    if (_plansError != null) {
+      setState(() {
+        _plansError = null;
+        _loadingPlans = true;
+      });
+    }
     try {
-      final plans = await _apiService.getPlans();
+      List<Map<String, dynamic>> plans;
+      try {
+        plans = await _apiService.getPlans();
+      } catch (_) {
+        // Sin internet la app pudo quedarse apuntando a la nube: buscar la
+        // PC del gimnasio (cable USB / WiFi) y reintentar una vez antes de
+        // dejar la pantalla sin planes, porque sin plan no se puede avanzar.
+        await BackendResolver.resolve();
+        plans = await _apiService.getPlans();
+      }
       if (!mounted) return;
       setState(() {
         _plans = plans;
@@ -53,7 +70,7 @@ class _RegisterStep2ScreenState extends State<RegisterStep2Screen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _plansError = 'No se pudieron cargar los planes';
+        _plansError = 'No se pudieron cargar los planes. ${friendlyError(e)}';
         _loadingPlans = false;
       });
     }
@@ -102,12 +119,13 @@ class _RegisterStep2ScreenState extends State<RegisterStep2Screen> {
       } else {
         if (!mounted) return;
         _goHome(
-          message:
-              'Cuenta creada. Tu membresía se activará al confirmar tu pago en el gimnasio.',
+          message: widget.data.correo.isEmpty && !widget.data.isGoogle
+              ? 'Cuenta creada. Entra con tu teléfono y contraseña. Tu membresía se activará al pagar en el gimnasio.'
+              : 'Cuenta creada. Tu membresía se activará al confirmar tu pago en el gimnasio.',
         );
       }
     } catch (e) {
-      _showError(e.toString());
+      _showError(friendlyError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -134,7 +152,7 @@ class _RegisterStep2ScreenState extends State<RegisterStep2Screen> {
       await _showWaitingForPaymentDialog(response['token'] as String);
     } catch (e) {
       if (!mounted) return;
-      _showError('No se pudo iniciar el pago: $e');
+      _showError('No se pudo iniciar el pago: ${friendlyError(e)}');
       _goHome(
         message:
             'Cuenta creada, pero no se pudo iniciar el pago en línea. Puedes pagar en el gimnasio.',
@@ -232,10 +250,20 @@ class _RegisterStep2ScreenState extends State<RegisterStep2Screen> {
                         if (_plansError != null)
                           Padding(
                             padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                            child: Text(
-                              _plansError!,
-                              style: AppTextStyles.bodySm
-                                  .copyWith(color: AppColors.error),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _plansError!,
+                                  style: AppTextStyles.bodySm
+                                      .copyWith(color: AppColors.error),
+                                ),
+                                TextButton.icon(
+                                  onPressed: _loadPlans,
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Reintentar'),
+                                ),
+                              ],
                             ),
                           ),
                         for (final plan in _plans) ...[

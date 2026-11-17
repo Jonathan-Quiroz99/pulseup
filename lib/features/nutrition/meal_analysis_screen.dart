@@ -429,6 +429,14 @@ class _MealAnalysisScreenState extends State<MealAnalysisScreen> {
 
               SectionHeader(
                   title: _manual ? 'Alimentos' : 'Alimentos detectados'),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Text(
+                  'Si la porción no es la correcta, cambia los gramos: '
+                  'calorías y macros se ajustan solos.',
+                  style: AppTextStyles.bodySm,
+                ),
+              ),
               for (final food in _foods)
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),

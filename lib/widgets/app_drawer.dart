@@ -8,6 +8,7 @@ import '../core/theme/app_text_styles.dart';
 
 import '../features/auth/user_session.dart';
 import '../features/auth/login_screen.dart';
+import '../features/onboarding/welcome_tour.dart';
 import 'ui/status_badge.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -43,6 +44,15 @@ class AppDrawer extends StatelessWidget {
                   const Divider(),
                   _item(context, Icons.receipt_long_outlined,
                       'Estado de cuenta', AppScreen.billing),
+                  ListTile(
+                    leading: const Icon(Icons.help_outline,
+                        color: AppColors.textSecondary),
+                    title: Text('Ver tutorial', style: AppTextStyles.body),
+                    onTap: () {
+                      Navigator.pop(context);
+                      WelcomeTour.show(context);
+                    },
+                  ),
                 ],
               ),
             ),
@@ -112,9 +122,13 @@ class AppDrawer extends StatelessWidget {
     String label,
     AppScreen screen,
   ) {
+    final locked = screen.requiresActivePlan && !UserSession.isActiveMember;
     return ListTile(
       leading: Icon(icon, color: AppColors.textSecondary),
       title: Text(label, style: AppTextStyles.body),
+      trailing: locked
+          ? const Icon(Icons.lock_outline, size: 18, color: AppColors.textMuted)
+          : null,
       onTap: () {
         Navigator.pop(context);
         onNavigate(screen);

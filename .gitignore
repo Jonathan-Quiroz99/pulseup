@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Salida de compilacion de Gradle (no va al repo)
+android/build/

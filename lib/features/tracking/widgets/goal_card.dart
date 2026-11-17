@@ -3,11 +3,17 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../widgets/ui/app_button.dart';
 import '../../../widgets/ui/app_card.dart';
 import '../services/progress_insights.dart';
 
 /// Meta de peso: de dónde empezaste, dónde vas, cuánto falta y, si la
 /// tendencia lo permite, cuándo llegarías.
+///
+/// Toda la tarjeta abre el editor (antes solo el texto "Editar", con un área
+/// táctil mínima que casi nadie lograba tocar). Al cumplirla se queda como
+/// cumplida hasta que el socio define otra, que empieza desde su peso de ese
+/// momento (lo decide el servidor, ver `goal_start_after_change`).
 class GoalCard extends StatelessWidget {
   final GoalProgress? progress;
   final double? goal;
@@ -66,7 +72,10 @@ class GoalCard extends StatelessWidget {
           : 'Tu tendencia reciente no va al alza todavía. ¡Ánimo, la constancia gana!';
     }
 
+    if (p.reached) return _reachedCard(p);
+
     return AppCard(
+      onTap: onEdit,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -75,15 +84,10 @@ class GoalCard extends StatelessWidget {
               Text('META DE PESO',
                   style: AppTextStyles.label.copyWith(color: AppColors.accent, letterSpacing: 1)),
               const Spacer(),
-              TextButton(
+              TextButton.icon(
                 onPressed: onEdit,
-                style: TextButton.styleFrom(
-                  minimumSize: Size.zero,
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  textStyle: AppTextStyles.label.copyWith(fontWeight: FontWeight.w600),
-                ),
-                child: const Text('Editar'),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Editar'),
               ),
             ],
           ),
@@ -127,6 +131,44 @@ class GoalCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(paceText, style: AppTextStyles.bodySm),
+        ],
+      ),
+    );
+  }
+
+  Widget _reachedCard(GoalProgress p) {
+    final change = (p.current - p.start).abs();
+    final verb = p.losing ? 'Bajaste' : 'Subiste';
+    return AppCard(
+      borderColor: AppColors.success,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.emoji_events_outlined, color: AppColors.success),
+              const SizedBox(width: AppSpacing.sm),
+              Text('META CUMPLIDA',
+                  style: AppTextStyles.label.copyWith(color: AppColors.success, letterSpacing: 1)),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text('¡Llegaste a ${p.goal.toStringAsFixed(1)} kg!', style: AppTextStyles.titleLg),
+          const SizedBox(height: 4),
+          Text(
+            change >= 0.05
+                ? '$verb ${change.toStringAsFixed(1)} kg desde ${p.start.toStringAsFixed(1)} kg. '
+                    'Tu meta se queda aquí como logro hasta que definas la siguiente.'
+                : 'Tu meta se queda aquí como logro hasta que definas la siguiente.',
+            style: AppTextStyles.bodySm,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppButton(
+            label: 'Definir nueva meta',
+            icon: Icons.flag_outlined,
+            expanded: true,
+            onPressed: onEdit,
+          ),
         ],
       ),
     );

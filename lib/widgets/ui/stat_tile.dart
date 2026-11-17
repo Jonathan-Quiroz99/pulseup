@@ -32,13 +32,18 @@ class StatTile extends StatelessWidget {
             Icon(icon, size: 18, color: AppColors.textMuted),
             const SizedBox(height: AppSpacing.sm),
           ],
-          Text(
-            value ?? '--',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: accentValue
-                ? AppTextStyles.stat.copyWith(color: AppColors.accent)
-                : AppTextStyles.stat,
+          // Se encoge en vez de cortarse: en tarjetas de un tercio de ancho
+          // "84.0 kg" salia como "84.0…" y no se veia la unidad.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value ?? '--',
+              maxLines: 1,
+              style: accentValue
+                  ? AppTextStyles.stat.copyWith(color: AppColors.accent)
+                  : AppTextStyles.stat,
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(

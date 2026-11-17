@@ -11,7 +11,9 @@ import '../auth/user_session.dart';
 import '../billing/billing_screen.dart';
 import '../checkin/checkin_screen.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../membership/locked_feature_screen.dart';
 import '../nutrition/nutrition_screen.dart';
+import '../onboarding/welcome_tour.dart';
 import '../routines/routines_screen.dart';
 import '../store/store_screen.dart';
 import '../tracking/tracking_screen.dart';
@@ -25,6 +27,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   AppScreen _currentScreen = AppScreen.dashboard;
+
+  @override
+  void initState() {
+    super.initState();
+    // Primera vez de este socio en la app: bienvenida + mini tutorial.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => WelcomeTour.showIfFirstTime(context),
+    );
+  }
 
   void _changeTab(AppScreen screen) {
     if (_currentScreen == screen) return;
@@ -55,6 +66,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildScreen() {
+    if (_currentScreen.requiresActivePlan && !UserSession.isActiveMember) {
+      return LockedFeatureScreen(
+        key: ValueKey(_currentScreen),
+        screen: _currentScreen,
+        onGoToBilling: () => _changeTab(AppScreen.billing),
+        onUnlocked: () => setState(() {}),
+      );
+    }
+
     switch (_currentScreen) {
       case AppScreen.dashboard:
         return DashboardScreen(onNavigate: _changeTab);

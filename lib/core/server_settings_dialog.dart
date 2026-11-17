@@ -5,9 +5,9 @@ import 'backend_resolver.dart';
 
 /// Texto corto para mostrar a qué servidor está conectada la app.
 String describeServer(String baseUrl) {
-  if (baseUrl == ApiConfig.defaultBaseUrl) return 'nube';
   final host = Uri.tryParse(baseUrl)?.host ?? baseUrl;
   if (host == '127.0.0.1' || host == 'localhost') return 'PC por cable USB';
+  if (host.endsWith('onrender.com')) return 'nube';
   return 'PC ($host)';
 }
 
