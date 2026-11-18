@@ -17,8 +17,12 @@ import 'widgets/routine_view.dart';
 class RoutinesScreen
     extends StatefulWidget {
 
+  /// Lleva a Progreso (desde "¡Completaste tu rutina!").
+  final VoidCallback? onOpenProgress;
+
   const RoutinesScreen({
     super.key,
+    this.onOpenProgress,
   });
 
   @override
@@ -93,7 +97,8 @@ class _RoutinesScreenState
         target: _finishKey,
         icon: Icons.check,
         title: 'Al terminar',
-        body: 'Presiona "Terminé..." y la próxima vez te toca el siguiente día.',
+        body: 'Presiona "Terminé..." y queda guardado en tu Progreso. La próxima '
+            'vez te toca el siguiente día; al terminar el último completas la rutina.',
       ),
     ];
   }
@@ -187,6 +192,7 @@ class _RoutinesScreenState
               RoutineView(
                 key: ValueKey(routine.id),
                 routine: routine,
+                onOpenProgress: widget.onOpenProgress,
                 // Solo la primera rutina actual lleva las marcas del tutorial.
                 todayKey: routine == current.first ? _todayKey : null,
                 daysKey: routine == current.first ? _daysKey : null,

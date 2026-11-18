@@ -12,6 +12,10 @@ class WorkoutPlan {
   final String status;
   final List<WorkoutExercise> exercises;
 
+  /// Días que el socio ya terminó en esta rutina (los guarda el servidor).
+  /// De aquí sale qué día "toca hoy".
+  final int completedSessions;
+
   bool get isActive => status == 'Activo';
 
   WorkoutPlan({
@@ -22,6 +26,7 @@ class WorkoutPlan {
     required this.trainer,
     this.status = 'Activo',
     required this.exercises,
+    this.completedSessions = 0,
   });
 
   factory WorkoutPlan.fromJson(Map<String, dynamic> json) {
@@ -41,6 +46,7 @@ class WorkoutPlan {
           .whereType<Map<String, dynamic>>()
           .map(WorkoutExercise.fromJson)
           .toList(),
+      completedSessions: asInt(json['sesiones_completadas']),
     );
   }
 }

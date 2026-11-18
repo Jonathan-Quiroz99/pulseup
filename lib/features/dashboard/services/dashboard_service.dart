@@ -23,8 +23,7 @@ class DashboardService {
     var todayLabel = '';
     var todayExercises = workout.exercises.length;
     if (days.length > 1) {
-      final done = await RoutineSchedule.completedCount(workout.id);
-      final today = days[RoutineSchedule.todayIndex(done, days.length)];
+      final today = days[RoutineSchedule.todayIndex(workout.completedSessions, days.length)];
       todayLabel = today.key;
       todayExercises = today.value.length;
     }

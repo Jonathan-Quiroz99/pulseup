@@ -89,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return DashboardScreen(onNavigate: _changeTab);
 
       case AppScreen.routines:
-        return const RoutinesScreen();
+        return RoutinesScreen(onOpenProgress: () => _changeTab(AppScreen.tracking));
 
       case AppScreen.tracking:
         return const TrackingScreen();

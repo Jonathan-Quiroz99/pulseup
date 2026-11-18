@@ -17,6 +17,8 @@ import '../../widgets/ui/app_button.dart';
 import '../auth/user_session.dart';
 import '../nutrition/services/nutrition_service.dart';
 import '../onboarding/section_guide.dart';
+import '../routines/models/workout_session.dart';
+import '../routines/services/routines_service.dart';
 import 'models/body_composition.dart';
 import 'models/body_measurement.dart';
 import 'models/progress_photo.dart';
@@ -31,6 +33,7 @@ import 'widgets/measurement_tile.dart';
 import 'widgets/metric_line_chart.dart';
 import 'widgets/progress_photos_card.dart';
 import 'widgets/progress_summary_card.dart';
+import 'widgets/workout_history_card.dart';
 
 class TrackingScreen extends StatefulWidget {
   const TrackingScreen({super.key});
@@ -52,6 +55,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
   double? _goalStart; // peso con el que se definió la meta actual
   String _metricKey = 'peso';
   List<ProgressPhoto> _photos = [];
+  // Días de rutina terminados (Rutinas → "Terminé..."), del más reciente.
+  List<WorkoutSession> _sessions = [];
   bool _uploadingPhoto = false;
   final _picker = ImagePicker();
 
@@ -59,6 +64,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   final _goalKey = GlobalKey();
   final _chartKey = GlobalKey();
   final _photosKey = GlobalKey();
+  final _workoutsKey = GlobalKey();
   final _fabKey = GlobalKey();
   final _startKey = GlobalKey();
   String? _guideShown; // id del tutorial ya revisado en esta pantalla
@@ -79,7 +85,19 @@ class _TrackingScreenState extends State<TrackingScreen> {
     _loadUserData();
     _loadGoal();
     _loadPhotos();
+    _loadSessions();
     SectionGuide.attach(this, _replayGuide);
+  }
+
+  Future<void> _loadSessions() async {
+    final token = UserSession.token;
+    if (token == null) return;
+    try {
+      final sessions = await RoutinesService().fetchSessions(token);
+      if (mounted) setState(() => _sessions = sessions);
+    } catch (e) {
+      debugPrint('Tracking: workout sessions failed: $e');
+    }
   }
 
   /// "?" de la barra: el tutorial señala el "+", así que primero se muestra
@@ -144,6 +162,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
         title: 'Tu meta de peso',
         body: 'Toca aquí para definir o cambiar el peso al que quieres llegar. '
             'Te decimos cuánto te falta.',
+      ),
+      GuideStep(
+        target: _workoutsKey,
+        icon: Icons.fitness_center,
+        title: 'Tus entrenamientos',
+        body: 'Cada día que terminas en Rutinas queda aquí, junto con las '
+            'rutinas que completas.',
       ),
       GuideStep(
         target: _chartKey,
@@ -1035,6 +1060,11 @@ void _openAddMeasurementSheet() {
         step(3, 'Tómate una foto', 'Para comparar el antes y el ahora.', 'Foto', _addPhoto,
             done: _photos.isNotEmpty),
         ]),
+        // Entrena aunque todavía no registre su peso: lo hecho se ve igual.
+        if (_sessions.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.lg),
+          WorkoutHistoryCard(sessions: _sessions),
+        ],
       ],
     );
   }
@@ -1178,6 +1208,8 @@ void _openAddMeasurementSheet() {
                 weeklyRate: insights.weeklyRate(weightMetric),
                 onEdit: _showEditGoalDialog,
               ),
+              const SizedBox(height: AppSpacing.md),
+              WorkoutHistoryCard(key: _workoutsKey, sessions: _sessions),
               const SizedBox(height: AppSpacing.md),
               AppCard(
                 key: _chartKey,
