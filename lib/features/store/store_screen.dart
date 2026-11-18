@@ -122,8 +122,13 @@ class _StoreScreenState extends State<StoreScreen> {
     // hiding the gradient and causing a bottom overflow.
     return ColoredBox(
       color: AppColors.bg,
+      // bottom: false — navBarClearance (lista y CartBar) ya incluye el margen
+      // de los botones de Android. Con el SafeArea de abajo se contaba dos
+      // veces: la barra del carrito quedaba flotando a media pantalla, tapando
+      // productos, con un hueco vacío debajo.
       child: SafeArea(
         top: false,
+        bottom: false,
         child: loading
             ? const Center(child: CircularProgressIndicator())
             : error != null

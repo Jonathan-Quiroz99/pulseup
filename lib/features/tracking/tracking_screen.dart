@@ -62,6 +62,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
   final _fabKey = GlobalKey();
   final _startKey = GlobalKey();
   String? _guideShown; // id del tutorial ya revisado en esta pantalla
+  // El "+" se esconde mientras el socio baja por la lista (tapaba fotos y
+  // tarjetas) y regresa en cuanto sube.
+  bool _fabVisible = true;
 
   final _weightController = TextEditingController();
   final _waistController = TextEditingController();
@@ -76,7 +79,36 @@ class _TrackingScreenState extends State<TrackingScreen> {
     _loadUserData();
     _loadGoal();
     _loadPhotos();
-    SectionGuide.attach(this, () => SectionGuide.show(context, _guideSteps()));
+    SectionGuide.attach(this, _replayGuide);
+  }
+
+  /// "?" de la barra: el tutorial señala el "+", así que primero se muestra
+  /// (si estaba escondido por el scroll) y se espera a que termine de entrar.
+  Future<void> _replayGuide() async {
+    if (!_fabVisible) {
+      setState(() => _fabVisible = true);
+      await Future<void>.delayed(const Duration(milliseconds: 260));
+    }
+    if (mounted) SectionGuide.show(context, _guideSteps());
+  }
+
+  /// Solo la lista principal (depth 0, vertical): los chips de la gráfica y
+  /// la tira de fotos también hacen scroll y no deben mover el "+".
+  bool _onScroll(ScrollUpdateNotification n) {
+    if (n.depth != 0 || n.metrics.axis != Axis.vertical) return false;
+    final delta = n.scrollDelta ?? 0;
+    bool? visible;
+    if (n.metrics.pixels <= 0) {
+      visible = true; // arriba de todo
+    } else if (delta > 2) {
+      visible = false; // bajando
+    } else if (delta < -2) {
+      visible = true; // subiendo
+    }
+    if (visible != null && visible != _fabVisible) {
+      setState(() => _fabVisible = visible!);
+    }
+    return false;
   }
 
   List<GuideStep> _guideSteps() {
@@ -1011,12 +1043,24 @@ void _openAddMeasurementSheet() {
     return Positioned(
       right: AppSpacing.screenX,
       bottom: AppSpacing.navBarClearance,
-      child: FloatingActionButton(
-        key: _fabKey,
-        onPressed: _openAddMeasurementSheet,
-        backgroundColor: AppColors.accent,
-        foregroundColor: AppColors.onAccent,
-        child: const Icon(Icons.add),
+      child: AnimatedSlide(
+        offset: _fabVisible ? Offset.zero : const Offset(0, 2.5),
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        child: AnimatedOpacity(
+          opacity: _fabVisible ? 1 : 0,
+          duration: const Duration(milliseconds: 180),
+          child: IgnorePointer(
+            ignoring: !_fabVisible,
+            child: FloatingActionButton(
+              key: _fabKey,
+              onPressed: _openAddMeasurementSheet,
+              backgroundColor: AppColors.accent,
+              foregroundColor: AppColors.onAccent,
+              child: const Icon(Icons.add),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1079,7 +1123,9 @@ void _openAddMeasurementSheet() {
       padding: EdgeInsets.zero,
       child: Stack(
         children: [
-          ListView(
+          NotificationListener<ScrollUpdateNotification>(
+            onNotification: _onScroll,
+            child: ListView(
             // Construye también lo que está fuera de pantalla: el tutorial
             // necesita encontrar (y desplazarse a) la tarjeta de fotos.
             scrollCacheExtent: const ScrollCacheExtent.pixels(4000),
@@ -1295,6 +1341,7 @@ void _openAddMeasurementSheet() {
                   }),
                 ),
             ],
+          ),
           ),
           _fab(),
         ],

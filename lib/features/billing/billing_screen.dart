@@ -255,11 +255,12 @@ class _BillingScreenState
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           scrollCacheExtent: const ScrollCacheExtent.pixels(3000),
+          // El último pago no debe quedar bajo la barra de navegación flotante.
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.screenX,
             AppSpacing.md,
             AppSpacing.screenX,
-            AppSpacing.xxl,
+            AppSpacing.navBarClearance,
           ),
           children: [
             Text('Estado de cuenta', style: AppTextStyles.displayMd),
