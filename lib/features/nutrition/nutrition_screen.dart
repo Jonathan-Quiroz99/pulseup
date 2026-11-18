@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -9,6 +10,7 @@ import '../../widgets/ui/app_scaffold.dart';
 import '../../widgets/ui/empty_state.dart';
 import '../../widgets/ui/section_header.dart';
 import '../auth/user_session.dart';
+import '../onboarding/section_guide.dart';
 import 'meal_analysis_screen.dart';
 import 'meal_detail_screen.dart';
 import 'models/daily_nutrition.dart';
@@ -38,10 +40,93 @@ class _NutritionScreenState extends State<NutritionScreen> {
   DailyNutrition? _daily;
   NutritionProfile? _profile;
 
+  // Mini tutorial de la sección.
+  final _summaryKey = GlobalKey();
+  final _analyzeKey = GlobalKey();
+  final _mealsKey = GlobalKey();
+  final _tuneKey = GlobalKey();
+  String? _guideShown; // id del tutorial ya revisado en esta pantalla
+
   @override
   void initState() {
     super.initState();
+    SectionGuide.attach(this, () => SectionGuide.show(context, _guideSteps()));
     _load();
+  }
+
+  @override
+  void dispose() {
+    SectionGuide.detach(this);
+    super.dispose();
+  }
+
+  bool get _configured =>
+      _profile?.configured ?? _daily?.profileConfigured ?? false;
+
+  List<GuideStep> _guideSteps() {
+    if (_daily == null) return const [];
+    if (!_configured) {
+      return [
+        GuideStep(
+          target: _summaryKey,
+          icon: Icons.flag_outlined,
+          title: 'Primero, tu objetivo',
+          body: 'Presiona "Empezar": con tu peso, altura, edad y actividad '
+              'calculamos las calorías y macros que necesitas al día.',
+        ),
+        const GuideStep(
+          icon: Icons.photo_camera_outlined,
+          title: 'Luego, analiza tu comida con IA',
+          body: 'Aparecerá el botón "Analizar comida": tómale foto a tu plato '
+              'y la IA estima calorías, proteína, carbos y grasa.',
+        ),
+        GuideStep(
+          target: _mealsKey,
+          icon: Icons.restaurant_outlined,
+          title: 'Tus comidas de hoy',
+          body: 'Aquí se van sumando las comidas que registres en el día.',
+        ),
+      ];
+    }
+    return [
+      GuideStep(
+        target: _summaryKey,
+        icon: Icons.local_fire_department_outlined,
+        title: 'Tu día en números',
+        body: 'Cuántas calorías y macros llevas hoy y cuánto te falta para '
+            'tu objetivo.',
+      ),
+      GuideStep(
+        target: _analyzeKey,
+        icon: Icons.photo_camera_outlined,
+        title: 'Analiza tu comida con IA',
+        body: 'Presiona aquí y tómale foto a tu plato. La IA reconoce los '
+            'alimentos y estima calorías y macros; tú lo corriges antes de '
+            'guardar.',
+      ),
+      GuideStep(
+        target: _mealsKey,
+        icon: Icons.restaurant_outlined,
+        title: 'Comidas de hoy',
+        body: 'Toca una comida para ver el detalle, corregirla o borrarla.',
+      ),
+      GuideStep(
+        target: _tuneKey,
+        icon: Icons.tune,
+        title: 'Ajusta tu objetivo',
+        body: 'Si cambia tu peso o tu meta, recalcula tus calorías aquí.',
+      ),
+    ];
+  }
+
+  /// Sin objetivo se explica cómo configurarlo; ya configurado, el botón de
+  /// analizar comida. Son dos tutoriales: el segundo sale al configurarlo.
+  void _maybeShowGuide() {
+    if (_daily == null) return;
+    final id = _configured ? 'nutricion' : 'nutricion_inicio';
+    if (_guideShown == id) return;
+    _guideShown = id;
+    SectionGuide.showIfFirstTime(context, id, _guideSteps);
   }
 
   Future<void> _load() async {
@@ -66,7 +151,10 @@ class _NutritionScreenState extends State<NutritionScreen> {
       if (!mounted) return;
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+        _maybeShowGuide();
+      }
     }
   }
 
@@ -126,6 +214,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
         onRefresh: _load,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
+          scrollCacheExtent: const ScrollCacheExtent.pixels(3000),
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.screenX,
             AppSpacing.md,
@@ -140,6 +229,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 ),
                 if (profileConfigured)
                   IconButton(
+                    key: _tuneKey,
                     onPressed: _openProfile,
                     icon: const Icon(Icons.tune),
                     tooltip: 'Ajustar objetivo',
@@ -149,11 +239,12 @@ class _NutritionScreenState extends State<NutritionScreen> {
             const SizedBox(height: AppSpacing.lg),
 
             if (!profileConfigured)
-              _setupCard()
+              KeyedSubtree(key: _summaryKey, child: _setupCard())
             else ...[
-              CalorieSummaryCard(daily: daily),
+              KeyedSubtree(key: _summaryKey, child: CalorieSummaryCard(daily: daily)),
               const SizedBox(height: AppSpacing.md),
               AppButton(
+                key: _analyzeKey,
                 label: 'Analizar comida',
                 icon: Icons.photo_camera_outlined,
                 onPressed: _analyzeMeal,
@@ -161,7 +252,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
             ],
 
             const SizedBox(height: AppSpacing.xl),
-            const SectionHeader(title: 'Comidas de hoy'),
+            SectionHeader(key: _mealsKey, title: 'Comidas de hoy'),
             if (daily.meals.isEmpty)
               const _NoMeals()
             else

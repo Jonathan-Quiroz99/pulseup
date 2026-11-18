@@ -11,6 +11,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../widgets/ui/app_button.dart';
 import '../../widgets/ui/app_card.dart';
 import '../../widgets/ui/section_header.dart';
+import '../onboarding/section_guide.dart';
 import 'models/meal_analysis.dart';
 import 'models/meal_food.dart';
 import 'models/nutrition_enums.dart';
@@ -51,6 +52,67 @@ class _MealAnalysisScreenState extends State<MealAnalysisScreen> {
   bool _manual = false;
   List<String> _warnings = [];
   bool _saving = false;
+
+  // Mini tutorial (primera vez): qué presionar en cada paso.
+  final _cameraKey = GlobalKey();
+  final _manualKey = GlobalKey();
+  final _foodsKey = GlobalKey();
+  final _typeKey = GlobalKey();
+  final _saveKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    SectionGuide.showIfFirstTime(context, 'nutricion_foto', _chooseGuide);
+  }
+
+  List<GuideStep> _chooseGuide() => [
+        GuideStep(
+          target: _cameraKey,
+          icon: Icons.photo_camera_outlined,
+          title: 'Tómale foto a tu plato',
+          body: 'Presiona aquí y toma la foto desde arriba, con buena luz y '
+              'todo el plato a la vista. También puedes elegirla de la galería.',
+        ),
+        GuideStep(
+          target: _manualKey,
+          icon: Icons.edit_outlined,
+          title: '¿Sin foto?',
+          body: 'Escribe los alimentos a mano. Sirve también si la IA no está '
+              'disponible.',
+        ),
+      ];
+
+  List<GuideStep> _resultGuide() => [
+        GuideStep(
+          target: _foodsKey,
+          icon: Icons.restaurant_menu,
+          title: 'Revisa lo que detectó la IA',
+          body: 'Si una porción no es la correcta, cambia los gramos: las '
+              'calorías y macros se ajustan solos. Borra lo que no comiste.',
+        ),
+        GuideStep(
+          target: _typeKey,
+          icon: Icons.schedule,
+          title: '¿Qué comida es?',
+          body: 'Elige desayuno, comida, cena o snack para ordenarla en tu día.',
+        ),
+        GuideStep(
+          target: _saveKey,
+          icon: Icons.check_rounded,
+          title: 'Guárdala',
+          body: 'Presiona "Agregar comida" y se suma a lo que llevas hoy.',
+        ),
+      ];
+
+  void _showGuideForStep({bool force = false}) {
+    final steps = _step == _Step.result ? _resultGuide : _chooseGuide;
+    if (force) {
+      SectionGuide.show(context, steps());
+    } else if (_step == _Step.result) {
+      SectionGuide.showIfFirstTime(context, 'nutricion_resultado', steps);
+    }
+  }
 
   @override
   void dispose() {
@@ -134,6 +196,7 @@ class _MealAnalysisScreenState extends State<MealAnalysisScreen> {
         _warnings = a.warnings;
         _step = _Step.result;
       });
+      _showGuideForStep();
     } on NoFoodDetectedException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -195,6 +258,7 @@ class _MealAnalysisScreenState extends State<MealAnalysisScreen> {
       _step = _Step.result;
       _error = null;
     });
+    _showGuideForStep();
   }
 
   Future<void> _save() async {
@@ -250,6 +314,14 @@ class _MealAnalysisScreenState extends State<MealAnalysisScreen> {
           _Step.result => _manual ? 'Nueva comida' : 'Revisar comida',
           _ => 'Analizar comida',
         }),
+        actions: [
+          if (_step == _Step.choose || _step == _Step.result)
+            IconButton(
+              tooltip: 'Cómo funciona',
+              onPressed: () => _showGuideForStep(force: true),
+              icon: const Icon(Icons.help_outline),
+            ),
+        ],
       ),
       body: SafeArea(
         child: switch (_step) {
@@ -294,6 +366,7 @@ class _MealAnalysisScreenState extends State<MealAnalysisScreen> {
             const SizedBox(height: AppSpacing.md),
           ],
           AppButton(
+            key: _cameraKey,
             label: 'Tomar foto',
             icon: Icons.photo_camera_outlined,
             onPressed: () => _pick(ImageSource.camera),
@@ -307,6 +380,7 @@ class _MealAnalysisScreenState extends State<MealAnalysisScreen> {
           ),
           const SizedBox(height: AppSpacing.sm),
           AppButton(
+            key: _manualKey,
             label: 'Agregar sin foto',
             icon: Icons.edit_outlined,
             variant: AppButtonVariant.ghost,
@@ -420,22 +494,34 @@ class _MealAnalysisScreenState extends State<MealAnalysisScreen> {
               ),
               const SizedBox(height: AppSpacing.lg),
 
-              const SectionHeader(title: 'Tipo de comida'),
-              MealTypeSelector(
-                selected: _mealType,
-                onChanged: (t) => setState(() => _mealType = t),
+              Column(
+                key: _typeKey,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SectionHeader(title: 'Tipo de comida'),
+                  MealTypeSelector(
+                    selected: _mealType,
+                    onChanged: (t) => setState(() => _mealType = t),
+                  ),
+                ],
               ),
               const SizedBox(height: AppSpacing.xl),
 
-              SectionHeader(
-                  title: _manual ? 'Alimentos' : 'Alimentos detectados'),
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: Text(
-                  'Si la porción no es la correcta, cambia los gramos: '
-                  'calorías y macros se ajustan solos.',
-                  style: AppTextStyles.bodySm,
-                ),
+              Column(
+                key: _foodsKey,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SectionHeader(
+                      title: _manual ? 'Alimentos' : 'Alimentos detectados'),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: Text(
+                      'Si la porción no es la correcta, cambia los gramos: '
+                      'calorías y macros se ajustan solos.',
+                      style: AppTextStyles.bodySm,
+                    ),
+                  ),
+                ],
               ),
               for (final food in _foods)
                 Padding(
@@ -464,6 +550,7 @@ class _MealAnalysisScreenState extends State<MealAnalysisScreen> {
           child: Column(
             children: [
               AppButton(
+                key: _saveKey,
                 label: 'Agregar comida',
                 loading: _saving,
                 onPressed: _save,

@@ -21,7 +21,16 @@ class WelcomeTour extends StatefulWidget {
   static String get _seenKey =>
       'welcome_seen_${UserSession.memberId ?? UserSession.phone ?? ''}';
 
-  static Future<void> showIfFirstTime(BuildContext context) async {
+  /// Termina cuando la bienvenida de la primera vez ya se cerró (o no tocaba
+  /// mostrarla). Los tutoriales de cada sección esperan esto para no salir
+  /// encima de la bienvenida.
+  static Future<void> get ready => _ready ?? Future<void>.value();
+  static Future<void>? _ready;
+
+  static Future<void> showIfFirstTime(BuildContext context) =>
+      _ready = _showIfFirstTime(context);
+
+  static Future<void> _showIfFirstTime(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_seenKey) == true || !context.mounted) return;
     // Se marca antes de abrir: si lo cierran con "atrás" tampoco vuelve a salir.

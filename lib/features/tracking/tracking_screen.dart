@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -15,6 +16,7 @@ import '../../core/http_helpers.dart';
 import '../../widgets/ui/app_button.dart';
 import '../auth/user_session.dart';
 import '../nutrition/services/nutrition_service.dart';
+import '../onboarding/section_guide.dart';
 import 'models/body_composition.dart';
 import 'models/body_measurement.dart';
 import 'models/progress_photo.dart';
@@ -24,6 +26,7 @@ import 'services/progress_insights.dart';
 import 'widgets/body_composition_sheet.dart';
 import 'widgets/dynamic_add_measurement_sheet.dart';
 import 'widgets/goal_card.dart';
+import 'widgets/measurement_picker_sheet.dart';
 import 'widgets/measurement_tile.dart';
 import 'widgets/metric_line_chart.dart';
 import 'widgets/progress_photos_card.dart';
@@ -52,6 +55,14 @@ class _TrackingScreenState extends State<TrackingScreen> {
   bool _uploadingPhoto = false;
   final _picker = ImagePicker();
 
+  // Para el mini tutorial de la sección (ver _guideSteps).
+  final _goalKey = GlobalKey();
+  final _chartKey = GlobalKey();
+  final _photosKey = GlobalKey();
+  final _fabKey = GlobalKey();
+  final _startKey = GlobalKey();
+  String? _guideShown; // id del tutorial ya revisado en esta pantalla
+
   final _weightController = TextEditingController();
   final _waistController = TextEditingController();
   final _chestController = TextEditingController();
@@ -65,6 +76,76 @@ class _TrackingScreenState extends State<TrackingScreen> {
     _loadUserData();
     _loadGoal();
     _loadPhotos();
+    SectionGuide.attach(this, () => SectionGuide.show(context, _guideSteps()));
+  }
+
+  List<GuideStep> _guideSteps() {
+    if (_measurements.isEmpty) {
+      return [
+        GuideStep(
+          target: _startKey,
+          icon: Icons.flag_outlined,
+          title: 'Empieza aquí',
+          body: 'Son 3 pasos: define tu meta, registra tu peso de hoy y tómate '
+              'una foto. Toca el botón de cada paso.',
+        ),
+        GuideStep(
+          target: _fabKey,
+          icon: Icons.add,
+          title: 'Registra tu peso',
+          body: 'Con este botón + guardas tu peso y tus medidas. Hazlo una vez '
+              'por semana, en la mañana y antes de desayunar.',
+        ),
+        const GuideStep(
+          icon: Icons.auto_awesome,
+          title: 'Analiza tu cuerpo con IA',
+          body: 'Cuando tengas un registro de peso y una foto, toca la foto y '
+              'presiona "Analizar composición con IA": estima tu % de grasa '
+              'y de músculo.',
+        ),
+      ];
+    }
+    return [
+      GuideStep(
+        target: _goalKey,
+        icon: Icons.flag_outlined,
+        title: 'Tu meta de peso',
+        body: 'Toca aquí para definir o cambiar el peso al que quieres llegar. '
+            'Te decimos cuánto te falta.',
+      ),
+      GuideStep(
+        target: _chartKey,
+        icon: Icons.show_chart,
+        title: 'Tu gráfica',
+        body: 'Elige qué ver: peso, grasa, cintura... Verde = vas hacia tu '
+            'objetivo; amarillo = vas en sentido contrario.',
+      ),
+      GuideStep(
+        target: _photosKey,
+        icon: Icons.auto_awesome,
+        title: 'Fotos y análisis con IA',
+        body: 'Presiona "Agregar" para tomarte una foto: se guarda con tu '
+            'último registro de peso. Después toca la foto y presiona '
+            '"Analizar composición con IA" para estimar tu % de grasa y músculo.',
+      ),
+      GuideStep(
+        target: _fabKey,
+        icon: Icons.add,
+        title: 'Nuevo registro',
+        body: 'Con el botón + registras tu peso y medidas. Mídete una vez por '
+            'semana para ver tu avance.',
+      ),
+    ];
+  }
+
+  /// Sin registros se explica cómo empezar; con registros, la gráfica, las
+  /// fotos y la IA. Son dos tutoriales distintos: el segundo sale cuando el
+  /// socio ya tiene datos, aunque haya visto el primero.
+  void _maybeShowGuide() {
+    final id = _measurements.isEmpty ? 'progreso_inicio' : 'progreso';
+    if (_guideShown == id) return;
+    _guideShown = id;
+    SectionGuide.showIfFirstTime(context, id, _guideSteps);
   }
 
   Future<void> _loadPhotos() async {
@@ -108,12 +189,25 @@ class _TrackingScreenState extends State<TrackingScreen> {
       if (x == null) return;
       final bytes = await x.readAsBytes();
       setState(() => _uploadingPhoto = true);
-      final photo = await _trackingService.addPhoto(token, 'data:image/jpeg;base64,${base64Encode(bytes)}');
+      // La foto se liga a TU registro de peso más reciente (lo normal: te
+      // pesas y te tomas la foto). Antes se buscaba "el registro más cercano
+      // por fecha" al analizar, y con dos registros el mismo día las dos
+      // fotos tomaban el mismo peso.
+      final linked = _recentMeasurement();
+      final photo = await _trackingService.addPhoto(
+        token,
+        'data:image/jpeg;base64,${base64Encode(bytes)}',
+        measurementId: linked?.id,
+      );
       if (!mounted) return;
       setState(() {
-        _photos = [..._photos, photo]..sort((a, b) => a.date.compareTo(b.date));
+        // La nueva es de hoy: va al final (la lista va de la más vieja a la
+        // más nueva, igual que la manda el servidor).
+        _photos = [..._photos, photo];
       });
-      _showSnack('Foto guardada. ¡Sigue así!');
+      _showSnack(linked != null
+          ? 'Foto guardada con tu registro de ${MeasurementPickerSheet.label(linked)}.'
+          : 'Foto guardada. Registra tu peso (botón +) para poder analizarla.');
     } on PlatformException {
       _showSnack('No pudimos abrir la cámara o la galería. Revisa los permisos de la app.');
     } catch (e) {
@@ -124,9 +218,37 @@ class _TrackingScreenState extends State<TrackingScreen> {
   }
 
   Future<void> _openPhoto(ProgressPhoto photo) async {
+    final measurement = _measurementFor(photo);
+    final analyzeKey = GlobalKey();
+    final linkKey = GlobalKey();
+    BuildContext? dialogContext;
+    // Primera vez que abre una foto: le enseñamos el botón de la IA.
+    Future<void>.delayed(const Duration(milliseconds: 250), () {
+      final c = dialogContext;
+      if (c == null || !c.mounted) return;
+      SectionGuide.showIfFirstTime(c, 'progreso_foto', () => [
+            GuideStep(
+              target: analyzeKey,
+              icon: Icons.auto_awesome,
+              title: 'Analiza tu composición con IA',
+              body: 'Presiona aquí: la IA mira tu foto y, con el peso y la '
+                  'cintura de su registro, estima tu % de grasa y de músculo. '
+                  'Puedes guardar el resultado en ese registro.',
+            ),
+            GuideStep(
+              target: linkKey,
+              icon: Icons.monitor_weight_outlined,
+              title: 'El registro de esta foto',
+              body: 'Es el peso con el que se calcula. Si no es el correcto '
+                  '(o la foto no tiene), tócalo aquí para elegir el registro.',
+            ),
+          ]);
+    });
     final action = await showDialog<String>(
       context: context,
-      builder: (ctx) => Dialog(
+      builder: (ctx) {
+        dialogContext = ctx;
+        return Dialog(
         backgroundColor: AppColors.surfaceHigh,
         insetPadding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
@@ -141,10 +263,34 @@ class _TrackingScreenState extends State<TrackingScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
               child: AppButton(
+                key: analyzeKey,
                 label: 'Analizar composición con IA',
                 icon: Icons.auto_awesome,
                 expanded: true,
                 onPressed: () => Navigator.pop(ctx, 'analyze'),
+              ),
+            ),
+            Padding(
+              key: linkKey,
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.sm, 0),
+              child: Row(
+                children: [
+                  const Icon(Icons.monitor_weight_outlined, size: 18, color: AppColors.textMuted),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      measurement != null
+                          ? 'Registro: ${MeasurementPickerSheet.label(measurement)}'
+                          : 'Sin registro de peso',
+                      style: AppTextStyles.bodySm,
+                    ),
+                  ),
+                  if (_measurements.isNotEmpty)
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, 'link'),
+                      child: Text(measurement != null ? 'Cambiar' : 'Elegir'),
+                    ),
+                ],
               ),
             ),
             Padding(
@@ -159,9 +305,14 @@ class _TrackingScreenState extends State<TrackingScreen> {
             ),
           ],
         ),
-      ),
+      );
+      },
     );
     if (action == 'analyze') return _analyzePhoto(photo);
+    if (action == 'link') {
+      await _chooseMeasurement(photo);
+      return;
+    }
     if (action != 'delete') return;
     final token = UserSession.token;
     if (token == null) return;
@@ -173,8 +324,56 @@ class _TrackingScreenState extends State<TrackingScreen> {
     }
   }
 
-  /// La medición más cercana a la fecha de la foto (el peso y la cintura de
-  /// ese momento, no los de hoy si la foto es vieja).
+  /// El registro más reciente si es de estos días (para ligar una foto nueva).
+  BodyMeasurement? _recentMeasurement() {
+    for (final m in _measurements) {
+      if (m.weightKg <= 0) continue;
+      final d = DateTime.tryParse(m.date);
+      if (d == null) return null;
+      return DateTime.now().difference(d).inDays <= 3 ? m : null;
+    }
+    return null;
+  }
+
+  /// El registro de peso al que está ligada la foto (null si no tiene o si
+  /// ese registro se borró).
+  BodyMeasurement? _measurementFor(ProgressPhoto photo) {
+    final id = photo.measurementId;
+    if (id == null) return null;
+    for (final m in _measurements) {
+      if (m.id == id && m.weightKg > 0) return m;
+    }
+    return null;
+  }
+
+  /// Pide elegir el registro de la foto y lo guarda. Devuelve el elegido.
+  Future<BodyMeasurement?> _chooseMeasurement(ProgressPhoto photo) async {
+    final picked = await MeasurementPickerSheet.show(
+      context,
+      measurements: _measurements,
+      initialId: photo.measurementId ?? _measurementNear(photo)?.id,
+    );
+    if (picked == null || !mounted) return null;
+    if (picked.id == photo.measurementId) return picked;
+    final token = UserSession.token;
+    if (token == null) return null;
+    try {
+      final updated = await _trackingService.linkPhoto(token, photo.id, picked.id);
+      if (!mounted) return null;
+      setState(() {
+        _photos = [for (final p in _photos) p.id == photo.id ? p.withMeasurement(updated.measurementId) : p];
+      });
+      return picked;
+    } catch (e) {
+      if (!e.toString().contains('expir')) {
+        _showSnack('No se pudo cambiar el registro. Inténtalo de nuevo.');
+      }
+      return null;
+    }
+  }
+
+  /// Sugerencia para fotos sin registro: la medición más cercana a la fecha
+  /// de la foto (solo preselecciona; el socio confirma).
   BodyMeasurement? _measurementNear(ProgressPhoto photo) {
     final photoDate = photo.dateTime ?? DateTime.now();
     BodyMeasurement? best;
@@ -192,11 +391,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
   }
 
   Future<void> _analyzePhoto(ProgressPhoto photo) async {
-    final measurement = _measurementNear(photo);
-    if (measurement == null) {
+    if (!_measurements.any((m) => m.weightKg > 0)) {
       _showSnack('Primero registra tu peso en Progreso (botón +).');
       return;
     }
+    // Foto vieja o cuyo registro se borró: que el socio diga de cuál es.
+    final measurement = _measurementFor(photo) ?? await _chooseMeasurement(photo);
+    if (measurement == null || !mounted) return;
     if (_userHeight == null) {
       _showSnack('Primero registra tu altura.');
       _showEditHeightDialog();
@@ -245,18 +446,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
       return;
     }
 
-    final measuredAt = DateTime.tryParse(measurement.date);
-    // Guardar crea una medición con fecha de HOY: solo tiene sentido si el
-    // peso y la cintura usados son de estos días.
-    final recent = measuredAt != null && DateTime.now().difference(measuredAt).inDays <= 3;
     final save = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surfaceHigh,
       builder: (_) => BodyCompositionSheet(
         result: result!,
-        measurementLabel: ProgressPhotosCard.dayLabel(measurement.date),
-        canSave: recent,
+        measurementLabel: MeasurementPickerSheet.label(measurement),
       ),
     );
     if (save != true) return;
@@ -264,17 +460,17 @@ class _TrackingScreenState extends State<TrackingScreen> {
     final token = UserSession.token;
     if (token == null) return;
     try {
-      await _trackingService.addMeasurement(
-        token: token,
-        weightKg: measurement.weightKg,
+      // Se guarda EN el registro de la foto. Antes se creaba otra medición
+      // con fecha de hoy y el peso de ese registro: repetía un peso viejo
+      // como si fuera el de hoy.
+      await _trackingService.saveBodyComposition(
+        token,
+        measurement.id,
         bodyFat: result.bodyFatPct,
         muscle: result.musclePct,
-        waist: measurement.waist,
-        heightCm: _userHeight,
-        notes: 'Grasa y músculo estimados con foto + medidas',
       );
-      _loadMeasurements();
-      _showSnack('Guardado en tus medidas.');
+      _loadMeasurements(silent: true);
+      _showSnack('Guardado en tu registro de ${MeasurementPickerSheet.label(measurement)}.');
     } catch (e) {
       if (!e.toString().contains('expir')) {
         _showSnack('No se pudo guardar. Inténtalo de nuevo.');
@@ -398,6 +594,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
   @override
   void dispose() {
+    SectionGuide.detach(this);
     _weightController.dispose();
     _waistController.dispose();
     _chestController.dispose();
@@ -451,13 +648,17 @@ class _TrackingScreenState extends State<TrackingScreen> {
     });
   }
 
-  Future<void> _loadMeasurements() async {
+  /// [silent]: recarga sin la pantalla de carga (no regresa al inicio de
+  /// la lista, p. ej. después de guardar un análisis).
+  Future<void> _loadMeasurements({bool silent = false}) async {
     final token = UserSession.token;
     if (token == null || token.isEmpty) return;
 
-    setState(() {
-      _loading = true;
-    });
+    if (!silent) {
+      setState(() {
+        _loading = true;
+      });
+    }
 
     try {
       final data = await _trackingService.fetchMeasurements(token);
@@ -472,6 +673,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
         setState(() {
           _loading = false;
         });
+        _maybeShowGuide();
       }
     }
   }
@@ -792,6 +994,7 @@ void _openAddMeasurementSheet() {
         Text('Son 3 pasos y te toma 2 minutos. Después solo vuelves una vez por semana.',
             style: AppTextStyles.bodySm),
         const SizedBox(height: AppSpacing.lg),
+        Column(key: _startKey, children: [
         step(1, 'Define tu meta', 'El peso al que quieres llegar.', 'Definir', _showEditGoalDialog,
             done: _weightGoal != null),
         const SizedBox(height: AppSpacing.sm),
@@ -799,6 +1002,7 @@ void _openAddMeasurementSheet() {
         const SizedBox(height: AppSpacing.sm),
         step(3, 'Tómate una foto', 'Para comparar el antes y el ahora.', 'Foto', _addPhoto,
             done: _photos.isNotEmpty),
+        ]),
       ],
     );
   }
@@ -808,6 +1012,7 @@ void _openAddMeasurementSheet() {
       right: AppSpacing.screenX,
       bottom: AppSpacing.navBarClearance,
       child: FloatingActionButton(
+        key: _fabKey,
         onPressed: _openAddMeasurementSheet,
         backgroundColor: AppColors.accent,
         foregroundColor: AppColors.onAccent,
@@ -875,6 +1080,9 @@ void _openAddMeasurementSheet() {
       child: Stack(
         children: [
           ListView(
+            // Construye también lo que está fuera de pantalla: el tutorial
+            // necesita encontrar (y desplazarse a) la tarjeta de fotos.
+            scrollCacheExtent: const ScrollCacheExtent.pixels(4000),
             // Deja hueco para la barra de nav flotante + el FAB de "＋".
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.screenX,
@@ -918,6 +1126,7 @@ void _openAddMeasurementSheet() {
                 const SizedBox(height: AppSpacing.md),
               ],
               GoalCard(
+                key: _goalKey,
                 progress: goalProgress,
                 goal: _weightGoal,
                 weeklyRate: insights.weeklyRate(weightMetric),
@@ -925,6 +1134,7 @@ void _openAddMeasurementSheet() {
               ),
               const SizedBox(height: AppSpacing.md),
               AppCard(
+                key: _chartKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -989,6 +1199,7 @@ void _openAddMeasurementSheet() {
               ),
               const SizedBox(height: AppSpacing.md),
               ProgressPhotosCard(
+                key: _photosKey,
                 photos: _photos,
                 measurements: _measurements,
                 uploading: _uploadingPhoto,

@@ -13,6 +13,7 @@ import '../checkin/checkin_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../membership/locked_feature_screen.dart';
 import '../nutrition/nutrition_screen.dart';
+import '../onboarding/section_guide.dart';
 import '../onboarding/welcome_tour.dart';
 import '../routines/routines_screen.dart';
 import '../store/store_screen.dart';
@@ -27,14 +28,22 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   AppScreen _currentScreen = AppScreen.dashboard;
+  final _navBarKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
+    SectionGuide.navBarKey = _navBarKey;
     // Primera vez de este socio en la app: bienvenida + mini tutorial.
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => WelcomeTour.showIfFirstTime(context),
     );
+  }
+
+  @override
+  void dispose() {
+    if (identical(SectionGuide.navBarKey, _navBarKey)) SectionGuide.navBarKey = null;
+    super.dispose();
   }
 
   void _changeTab(AppScreen screen) {
@@ -153,10 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           actions: [
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.notifications_none),
-            ),
+            _guideButton(),
 
             _drawerButton(),
           ],
@@ -165,39 +171,54 @@ class _HomeScreenState extends State<HomeScreen> {
       case AppScreen.routines:
         return AppBar(
           title: const Text('Rutinas'),
-          actions: [_drawerButton()],
+          actions: [_guideButton(), _drawerButton()],
         );
 
       case AppScreen.tracking:
         return AppBar(
           title: const Text('Progreso'),
-          actions: [_drawerButton()],
+          actions: [_guideButton(), _drawerButton()],
         );
 
       case AppScreen.nutrition:
         return AppBar(
           title: const Text('Nutrición'),
-          actions: [_drawerButton()],
+          actions: [_guideButton(), _drawerButton()],
         );
 
       case AppScreen.store:
         return AppBar(
           title: const Text('Tienda'),
-          actions: [_drawerButton()],
+          actions: [_guideButton(), _drawerButton()],
         );
 
       case AppScreen.checkin:
         return AppBar(
           title: const Text('Check-In'),
-          actions: [_drawerButton()],
+          actions: [_guideButton(), _drawerButton()],
         );
 
       case AppScreen.billing:
         return AppBar(
           title: const Text('Estado de cuenta'),
-          actions: [_drawerButton()],
+          actions: [_guideButton(), _drawerButton()],
         );
     }
+  }
+
+  /// "?" para repetir el mini tutorial de la sección visible (solo aparece
+  /// si esa pantalla tiene uno).
+  Widget _guideButton() {
+    return ValueListenableBuilder<VoidCallback?>(
+      valueListenable: SectionGuide.replay,
+      builder: (_, replay, _) => replay == null
+          ? const SizedBox.shrink()
+          : IconButton(
+              tooltip: 'Cómo usar esta sección',
+              onPressed: replay,
+              icon: const Icon(Icons.help_outline),
+            ),
+    );
   }
 
   Widget _drawerButton() {
@@ -267,10 +288,13 @@ class _HomeScreenState extends State<HomeScreen> {
           child: _buildScreen(),
         ),
 
-        bottomNavigationBar: AppNavBar(
-          items: _navItems,
-          currentIndex: _getBottomNavIndex(),
-          onTap: _onBottomNavTap,
+        bottomNavigationBar: KeyedSubtree(
+          key: _navBarKey,
+          child: AppNavBar(
+            items: _navItems,
+            currentIndex: _getBottomNavIndex(),
+            onTap: _onBottomNavTap,
+          ),
         ),
       ),
     );

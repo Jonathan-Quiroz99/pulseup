@@ -36,22 +36,15 @@ class ProgressPhotosCard extends StatelessWidget {
     return d == null ? isoDate : '${d.day} ${_months[d.month - 1]}';
   }
 
-  /// Peso medido el mismo día o hasta 7 días de diferencia, si lo hay.
+  /// El peso del registro de la foto. Una foto sin registro (fotos viejas)
+  /// no muestra peso: adivinarlo por fecha era justo el bug de "las dos
+  /// fotos dicen 80 kg" cuando hay dos registros el mismo día.
   double? _weightNear(ProgressPhoto p) {
-    final d = p.dateTime;
-    if (d == null) return null;
-    BodyMeasurement? best;
-    var bestDiff = 8;
+    if (p.measurementId == null) return null;
     for (final m in measurements) {
-      final md = DateTime.tryParse(m.date);
-      if (md == null || m.weightKg <= 0) continue;
-      final diff = md.difference(d).inDays.abs();
-      if (diff < bestDiff) {
-        best = m;
-        bestDiff = diff;
-      }
+      if (m.id == p.measurementId && m.weightKg > 0) return m.weightKg;
     }
-    return best?.weightKg;
+    return null;
   }
 
   @override

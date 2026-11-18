@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -8,6 +9,7 @@ import '../../widgets/ui/empty_state.dart';
 import '../../widgets/ui/section_header.dart';
 
 import '../auth/user_session.dart';
+import '../onboarding/section_guide.dart';
 
 import 'models/checkin_record.dart';
 import 'services/checkin_service.dart';
@@ -32,11 +34,47 @@ class _CheckinScreenState extends State<CheckinScreen> {
   bool _loading = true;
   List<CheckinRecord> _checkins = [];
 
+  // Mini tutorial de Check-In.
+  final _qrKey = GlobalKey();
+  final _statusKey = GlobalKey();
+  final _historyKey = GlobalKey();
+  bool _guideChecked = false;
+
   @override
   void initState() {
     super.initState();
+    SectionGuide.attach(this, () => SectionGuide.show(context, _guideSteps()));
     _loadCheckins();
   }
+
+  @override
+  void dispose() {
+    SectionGuide.detach(this);
+    super.dispose();
+  }
+
+  List<GuideStep> _guideSteps() => [
+        GuideStep(
+          target: _qrKey,
+          icon: Icons.qr_code_2_rounded,
+          title: 'Tu credencial',
+          body: 'Al llegar al gimnasio, muestra este código en recepción. '
+              'Sube el brillo de la pantalla si no lo leen a la primera.',
+        ),
+        GuideStep(
+          target: _statusKey,
+          icon: Icons.verified_outlined,
+          title: 'Estado de tu membresía',
+          body: 'Si dice Pendiente o Vencido, recepción no podrá darte '
+              'acceso: revisa tu estado de cuenta en el menú.',
+        ),
+        GuideStep(
+          target: _historyKey,
+          icon: Icons.history,
+          title: 'Tus visitas',
+          body: 'Cada vez que entras queda registrado aquí.',
+        ),
+      ];
 
   Future<void> _loadCheckins() async {
     final token = UserSession.token;
@@ -62,6 +100,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
     if (!mounted) return;
     setState(() => _loading = false);
+    if (!_guideChecked) {
+      _guideChecked = true;
+      SectionGuide.showIfFirstTime(context, 'checkin', _guideSteps);
+    }
   }
 
   @override
@@ -82,6 +124,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
       child: RefreshIndicator(
         onRefresh: _loadCheckins,
         child: ListView(
+          scrollCacheExtent: const ScrollCacheExtent.pixels(3000),
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.screenX,
             AppSpacing.md,
@@ -99,10 +142,13 @@ class _CheckinScreenState extends State<CheckinScreen> {
             ),
             const SizedBox(height: AppSpacing.xl),
             if (hasCredential)
-              QRCard(
-                qrData: memberId,
-                memberName: memberName,
-                memberId: memberId,
+              KeyedSubtree(
+                key: _qrKey,
+                child: QRCard(
+                  qrData: memberId,
+                  memberName: memberName,
+                  memberId: memberId,
+                ),
               )
             else
               EmptyState(
@@ -114,6 +160,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
               ),
             const SizedBox(height: AppSpacing.lg),
             MembershipStatusCard(
+              key: _statusKey,
               membership: (membership ?? '').isEmpty
                   ? 'Membresía'
                   : 'Membresía $membership',
@@ -124,7 +171,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
               LatestCheckinCard(checkin: latest),
             ],
             const SizedBox(height: AppSpacing.xl),
-            const SectionHeader(title: 'Historial reciente'),
+            SectionHeader(key: _historyKey, title: 'Historial reciente'),
             if (_checkins.isEmpty)
               const CheckinEmptyState()
             else

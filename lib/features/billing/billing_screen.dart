@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -14,6 +15,7 @@ import '../../widgets/ui/section_header.dart';
 import '../../widgets/ui/status_badge.dart';
 
 import '../auth/user_session.dart';
+import '../onboarding/section_guide.dart';
 
 class BillingScreen
     extends StatefulWidget {
@@ -41,11 +43,46 @@ class _BillingScreenState
   List<Map<String, dynamic>> _plans = [];
   List<Map<String, dynamic>> _payments = [];
 
+  // Mini tutorial del Estado de cuenta.
+  final _planKey = GlobalKey();
+  final _payKey = GlobalKey();
+  final _historyKey = GlobalKey();
+  bool _guideChecked = false;
+
   @override
   void initState() {
     super.initState();
+    SectionGuide.attach(this, () => SectionGuide.show(context, _guideSteps()));
     _load();
   }
+
+  @override
+  void dispose() {
+    SectionGuide.detach(this);
+    super.dispose();
+  }
+
+  List<GuideStep> _guideSteps() => [
+        GuideStep(
+          target: _planKey,
+          icon: Icons.card_membership_outlined,
+          title: 'Tu membresía',
+          body: 'Tu plan, su precio, si está activo y cuándo vence.',
+        ),
+        GuideStep(
+          target: _payKey,
+          icon: Icons.payments_outlined,
+          title: 'Activa tu membresía',
+          body: 'Paga en línea para activarla al instante, o paga en el '
+              'gimnasio y recepción la confirma.',
+        ),
+        GuideStep(
+          target: _historyKey,
+          icon: Icons.receipt_long_outlined,
+          title: 'Tus pagos',
+          body: 'Aquí quedan todos tus pagos con su fecha y estado.',
+        ),
+      ];
 
   Future<void> _load() async {
     final token = UserSession.token;
@@ -93,6 +130,10 @@ class _BillingScreenState
       _payments = payments;
       _loading = false;
     });
+    if (!_guideChecked && _profile != null) {
+      _guideChecked = true;
+      SectionGuide.showIfFirstTime(context, 'cuenta', _guideSteps);
+    }
   }
 
   Map<String, dynamic>? get _currentPlanData {
@@ -213,6 +254,7 @@ class _BillingScreenState
         onRefresh: _load,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
+          scrollCacheExtent: const ScrollCacheExtent.pixels(3000),
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.screenX,
             AppSpacing.md,
@@ -224,6 +266,7 @@ class _BillingScreenState
             const SizedBox(height: AppSpacing.lg),
 
             AppCard(
+              key: _planKey,
               elevated: true,
               borderColor: isActive ? AppColors.success : AppColors.accent,
               child: Column(
@@ -274,6 +317,7 @@ class _BillingScreenState
                     ),
                     const SizedBox(height: AppSpacing.md),
                     AppButton(
+                      key: _payKey,
                       label: 'Pagar en línea ahora',
                       loading: _paying,
                       onPressed: _payOnline,
@@ -284,7 +328,7 @@ class _BillingScreenState
             ],
 
             const SizedBox(height: AppSpacing.xl),
-            const SectionHeader(title: 'Historial de pagos'),
+            SectionHeader(key: _historyKey, title: 'Historial de pagos'),
 
             if (_payments.isEmpty)
               const EmptyState(

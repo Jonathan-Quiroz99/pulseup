@@ -15,7 +15,20 @@ import 'exercise_tile.dart';
 class RoutineView extends StatefulWidget {
   final WorkoutPlan routine;
 
-  const RoutineView({super.key, required this.routine});
+  /// Para el mini tutorial de Rutinas (opcionales).
+  final GlobalKey? todayKey;
+  final GlobalKey? daysKey;
+  final GlobalKey? exerciseKey;
+  final GlobalKey? finishKey;
+
+  const RoutineView({
+    super.key,
+    required this.routine,
+    this.todayKey,
+    this.daysKey,
+    this.exerciseKey,
+    this.finishKey,
+  });
 
   static List<MapEntry<String, List<WorkoutExercise>>> groupByDay(List<WorkoutExercise> exercises) {
     final groups = <String, List<WorkoutExercise>>{};
@@ -113,6 +126,7 @@ class _RoutineViewState extends State<RoutineView> {
         // ---- Hoy toca ----
         if (_days.length > 1)
           Container(
+            key: widget.todayKey,
             width: double.infinity,
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
@@ -147,6 +161,7 @@ class _RoutineViewState extends State<RoutineView> {
         // ---- Selector de días ----
         if (_days.length > 1) ...[
           SingleChildScrollView(
+            key: widget.daysKey,
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
@@ -171,12 +186,16 @@ class _RoutineViewState extends State<RoutineView> {
 
         // ---- Ejercicios del día ----
         for (var i = 0; i < exercises.length; i++) ...[
-          ExerciseTile(exercise: exercises[i], number: i + 1),
+          KeyedSubtree(
+            key: i == 0 ? widget.exerciseKey : null,
+            child: ExerciseTile(exercise: exercises[i], number: i + 1),
+          ),
           const SizedBox(height: AppSpacing.sm),
         ],
         const SizedBox(height: AppSpacing.sm),
         if (_days.length > 1 && isToday)
           AppButton(
+            key: widget.finishKey,
             label: 'Terminé el ${_shortName(selected)}',
             icon: Icons.check,
             onPressed: _finishDay,

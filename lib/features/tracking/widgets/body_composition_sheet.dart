@@ -15,18 +15,14 @@ import '../models/body_composition.dart';
 class BodyCompositionSheet extends StatelessWidget {
   final BodyComposition result;
 
-  /// Fecha de las medidas usadas (p. ej. "14 nov"), para que se entienda de
-  /// qué día son el peso y la cintura.
+  /// El registro usado (p. ej. "84.0 kg · 14 nov"), para que se entienda de
+  /// qué peso y qué día sale el cálculo. "Guardar" lo guarda en ese registro.
   final String measurementLabel;
-
-  /// Solo se ofrece guardar si las medidas son recientes (ver tracking_screen).
-  final bool canSave;
 
   const BodyCompositionSheet({
     super.key,
     required this.result,
     required this.measurementLabel,
-    required this.canSave,
   });
 
   String _n(double v) =>
@@ -44,7 +40,7 @@ class BodyCompositionSheet extends StatelessWidget {
           children: [
             Text('Tu composición corporal', style: AppTextStyles.titleLg),
             const SizedBox(height: AppSpacing.xs),
-            Text('Estimado con tu foto y tus medidas del $measurementLabel',
+            Text('Estimado con tu foto y tu registro de $measurementLabel',
                 style: AppTextStyles.bodySm),
             const SizedBox(height: AppSpacing.lg),
             Row(
@@ -122,18 +118,12 @@ class BodyCompositionSheet extends StatelessWidget {
               style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
             ),
             const SizedBox(height: AppSpacing.lg),
-            if (canSave)
-              AppButton(
-                label: 'Guardar en mis medidas',
-                icon: Icons.save_outlined,
-                expanded: true,
-                onPressed: () => Navigator.pop(context, true),
-              )
-            else
-              Text(
-                'Para guardarlo en tu historial, registra primero tu peso de hoy.',
-                style: AppTextStyles.bodySm,
-              ),
+            AppButton(
+              label: 'Guardar en ese registro',
+              icon: Icons.save_outlined,
+              expanded: true,
+              onPressed: () => Navigator.pop(context, true),
+            ),
             const SizedBox(height: AppSpacing.sm),
             AppButton(
               label: 'Cerrar',

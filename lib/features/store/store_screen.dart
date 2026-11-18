@@ -13,6 +13,8 @@ import 'package:pulseup/core/theme/app_colors.dart';
 import 'package:pulseup/core/theme/app_spacing.dart';
 import 'package:pulseup/widgets/ui/empty_state.dart';
 
+import '../onboarding/section_guide.dart';
+
 class StoreScreen extends StatefulWidget {
   const StoreScreen({super.key});
 
@@ -30,11 +32,45 @@ class _StoreScreenState extends State<StoreScreen> {
   bool loading = true;
   String? error;
 
+  // Mini tutorial de la Tienda.
+  final _chipsKey = GlobalKey();
+  final _productKey = GlobalKey();
+  bool _guideChecked = false;
+
   @override
   void initState() {
     super.initState();
+    SectionGuide.attach(this, () => SectionGuide.show(context, _guideSteps()));
     load();
   }
+
+  @override
+  void dispose() {
+    SectionGuide.detach(this);
+    super.dispose();
+  }
+
+  List<GuideStep> _guideSteps() => [
+        GuideStep(
+          target: _chipsKey,
+          icon: Icons.filter_list,
+          title: 'Filtra por categoría',
+          body: 'Toca una categoría para ver solo esos productos.',
+        ),
+        GuideStep(
+          target: _productKey,
+          icon: Icons.add_shopping_cart,
+          title: 'Agrega al carrito',
+          body: 'Presiona el botón del producto para agregarlo. Puedes agregar '
+              'varios.',
+        ),
+        const GuideStep(
+          icon: Icons.shopping_cart_outlined,
+          title: 'Tu carrito',
+          body: 'Al agregar algo, abajo aparece "Ver carrito". Ahí eliges pagar '
+              'en línea o pagar y recoger en recepción.',
+        ),
+      ];
 
   Future<void> load() async {
     setState(() {
@@ -51,6 +87,10 @@ class _StoreScreenState extends State<StoreScreen> {
         filtered = data;
         loading = false;
       });
+      if (!_guideChecked && data.isNotEmpty) {
+        _guideChecked = true;
+        SectionGuide.showIfFirstTime(context, 'tienda', _guideSteps);
+      }
     } catch (e) {
       debugPrint("Store error: $e");
       if (!mounted) return;
@@ -97,6 +137,7 @@ class _StoreScreenState extends State<StoreScreen> {
                     children: [
                       const StoreHeader(title: 'Tienda'),
                       CategoryChips(
+                        key: _chipsKey,
                         categories: categories,
                         selected: selected,
                         onSelect: filter,
@@ -123,8 +164,10 @@ class _StoreScreenState extends State<StoreScreen> {
                                         : AppSpacing.md,
                                   ),
                                   itemCount: filtered.length,
-                                  itemBuilder: (_, i) =>
-                                      ProductCard(product: filtered[i]),
+                                  itemBuilder: (_, i) => ProductCard(
+                                    key: i == 0 ? _productKey : null,
+                                    product: filtered[i],
+                                  ),
                                 ),
                               ),
                       ),

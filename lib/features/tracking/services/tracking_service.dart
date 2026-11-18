@@ -131,14 +131,15 @@ class TrackingService {
 
   /// [imageDataUri]: `data:image/jpeg;base64,...`. El servidor la endereza,
   /// la reduce y le quita los metadatos (ubicación).
-  Future<ProgressPhoto> addPhoto(String token, String imageDataUri) async {
+  /// [measurementId]: el registro de peso al que pertenece la foto.
+  Future<ProgressPhoto> addPhoto(String token, String imageDataUri, {String? measurementId}) async {
     final response = await http.post(
       Uri.parse("$baseUrl/api/mobile/me/progress-photos"),
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",
       },
-      body: jsonEncode({"imagen": imageDataUri}),
+      body: jsonEncode({"imagen": imageDataUri, "medida_id": ?measurementId}),
     ).timeout(const Duration(seconds: 90));
 
     await checkAuthResponse(response);
@@ -152,6 +153,49 @@ class TrackingService {
       throw Exception(msg);
     }
     return ProgressPhoto.fromJson(jsonDecode(response.body));
+  }
+
+  /// Cambia el registro de peso/medidas al que pertenece una foto.
+  Future<ProgressPhoto> linkPhoto(String token, String photoId, String measurementId) async {
+    final response = await http.patch(
+      Uri.parse("$baseUrl/api/mobile/me/progress-photos/$photoId"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({"medida_id": measurementId}),
+    ).timeout(apiTimeout);
+
+    await checkAuthResponse(response);
+
+    if (response.statusCode != 200) {
+      throw Exception("No se pudo cambiar el registro de la foto");
+    }
+    return ProgressPhoto.fromJson(jsonDecode(response.body));
+  }
+
+  /// Guarda grasa/músculo del análisis con foto EN el registro del que
+  /// salieron (no crea otra medición).
+  Future<void> saveBodyComposition(
+    String token,
+    String measurementId, {
+    required double bodyFat,
+    double? muscle,
+  }) async {
+    final response = await http.patch(
+      Uri.parse("$baseUrl/api/mobile/me/measurements/$measurementId/composition"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({"grasa_pct": bodyFat, "musculo_pct": ?muscle}),
+    ).timeout(apiTimeout);
+
+    await checkAuthResponse(response);
+
+    if (response.statusCode != 200) {
+      throw Exception("No se pudo guardar en tus medidas");
+    }
   }
 
   Future<void> deletePhoto(String token, String photoId) async {

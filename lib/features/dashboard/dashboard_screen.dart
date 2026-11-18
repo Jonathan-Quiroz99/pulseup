@@ -10,6 +10,7 @@ import '../../widgets/ui/app_scaffold.dart';
 import '../../widgets/ui/section_header.dart';
 
 import '../auth/user_session.dart';
+import '../onboarding/section_guide.dart';
 
 import 'models/dashboard_stats.dart';
 import 'models/dashboard_workout.dart';
@@ -44,11 +45,65 @@ class _DashboardScreenState extends State<DashboardScreen> {
   DashboardStats? _stats;
   int _weeklyCheckins = 0;
 
+  // Mini tutorial de Inicio.
+  final _headerKey = GlobalKey();
+  final _mainCardKey = GlobalKey();
+  final _quickKey = GlobalKey();
+  bool _guideChecked = false;
+
   @override
   void initState() {
     super.initState();
+    SectionGuide.attach(this, () => SectionGuide.show(context, _guideSteps()));
     _loadDashboard();
   }
+
+  @override
+  void dispose() {
+    SectionGuide.detach(this);
+    super.dispose();
+  }
+
+  List<GuideStep> _guideSteps() => [
+        GuideStep(
+          target: _headerKey,
+          icon: Icons.card_membership_outlined,
+          title: 'Tu membresía',
+          body: 'Aquí ves tu plan y si está activo.',
+        ),
+        if (UserSession.isActiveMember)
+          GuideStep(
+            target: _mainCardKey,
+            icon: Icons.fitness_center,
+            title: 'Tu entrenamiento de hoy',
+            body: _workout != null
+                ? 'Tócalo para ver los ejercicios que te tocan hoy.'
+                : 'Aquí aparecerá tu rutina del día cuando tu entrenador te '
+                    'asigne una.',
+          )
+        else
+          GuideStep(
+            target: _mainCardKey,
+            icon: Icons.lock_open_rounded,
+            title: 'Activa tu membresía',
+            body: 'Toca aquí para pagar en línea o ver tu estado de cuenta. '
+                'Rutinas, progreso y nutrición se desbloquean al activarla.',
+          ),
+        GuideStep(
+          target: _quickKey,
+          icon: Icons.touch_app_outlined,
+          title: 'Accesos rápidos',
+          body: 'Atajos a tu credencial (Check-In), rutinas, progreso y tu cuenta.',
+        ),
+        GuideStep(
+          target: SectionGuide.navBarKey,
+          icon: Icons.menu,
+          title: 'Muévete por la app',
+          body: 'Usa la barra de abajo para cambiar de sección. Nutrición y tu '
+              'estado de cuenta están en el menú (arriba a la derecha). El '
+              'botón ? te repite cómo usar cada sección.',
+        ),
+      ];
 
   /// Runs [task], returning [fallback] if it throws. Each dashboard card
   /// loads independently — one failing endpoint shouldn't blank the whole
@@ -97,6 +152,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _weeklyCheckins = results[2] as int;
       _loading = false;
     });
+    if (!_guideChecked) {
+      _guideChecked = true;
+      SectionGuide.showIfFirstTime(context, 'inicio', _guideSteps);
+    }
   }
 
   /// Sin membresía activa no hay rutina ni progreso que mostrar: en su
@@ -159,21 +218,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
             AppSpacing.navBarClearance,
           ),
           children: [
-            DashboardHeader(
-              membership: UserSession.membership,
-              status: UserSession.membershipStatus,
+            KeyedSubtree(
+              key: _headerKey,
+              child: DashboardHeader(
+                membership: UserSession.membership,
+                status: UserSession.membershipStatus,
+              ),
             ),
             const SizedBox(height: AppSpacing.lg),
             if (UserSession.isActiveMember) ...[
-              WorkoutCard(workout: _workout, onNavigate: widget.onNavigate),
+              KeyedSubtree(
+                key: _mainCardKey,
+                child: WorkoutCard(workout: _workout, onNavigate: widget.onNavigate),
+              ),
               const SizedBox(height: AppSpacing.xl),
               const SectionHeader(title: 'Tu progreso'),
               StatsRow(stats: _stats),
             ] else
-              _activatePlanCard(),
+              KeyedSubtree(key: _mainCardKey, child: _activatePlanCard()),
             const SizedBox(height: AppSpacing.xl),
             const SectionHeader(title: 'Accesos rápidos'),
-            QuickActionsGrid(onNavigate: widget.onNavigate),
+            KeyedSubtree(
+              key: _quickKey,
+              child: QuickActionsGrid(onNavigate: widget.onNavigate),
+            ),
             const SizedBox(height: AppSpacing.xl),
             const SectionHeader(title: 'Actividad'),
             ChallengeCard(checkins: _weeklyCheckins),

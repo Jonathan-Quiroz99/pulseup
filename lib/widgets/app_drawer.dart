@@ -8,6 +8,7 @@ import '../core/theme/app_text_styles.dart';
 
 import '../features/auth/user_session.dart';
 import '../features/auth/login_screen.dart';
+import '../features/onboarding/section_guide.dart';
 import '../features/onboarding/welcome_tour.dart';
 import 'ui/status_badge.dart';
 
@@ -50,6 +51,9 @@ class AppDrawer extends StatelessWidget {
                     title: Text('Ver tutorial', style: AppTextStyles.body),
                     onTap: () {
                       Navigator.pop(context);
+                      // Al volver a ver la bienvenida, cada sección vuelve
+                      // a explicar sus botones la próxima vez que se abra.
+                      SectionGuide.resetAll();
                       WelcomeTour.show(context);
                     },
                   ),
