@@ -61,6 +61,11 @@ class _RoutineViewState extends State<RoutineView> {
   int? _selected;
   bool _saving = false;
 
+  /// El último día guardado en esta pantalla: se muestra un aviso con
+  /// "Deshacer" dentro de la página (un SnackBar tapaba el botón de terminar).
+  WorkoutSession? _justSaved;
+  final _savedKey = GlobalKey();
+
   late List<MapEntry<String, List<WorkoutExercise>>> _days;
 
   RoutinesService get _service => widget.service ?? RoutinesService();
@@ -79,6 +84,7 @@ class _RoutineViewState extends State<RoutineView> {
       _days = RoutineView.groupByDay(widget.routine.exercises);
       _completed = widget.routine.completedSessions;
       _selected = null;
+      _justSaved = null;
     }
   }
 
@@ -93,10 +99,12 @@ class _RoutineViewState extends State<RoutineView> {
 
   String _focus(int i) => RoutineSchedule.splitDayName(_days[i].key).$2;
 
-  void _snack(String text, {SnackBarAction? action}) {
+  // Sin acciones: un SnackBar con botón no se cierra solo si el teléfono
+  // tiene accesibilidad activa, y taparía el botón de terminar.
+  void _snack(String text) {
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(SnackBar(content: Text(text), action: action));
+    messenger.showSnackBar(SnackBar(content: Text(text)));
   }
 
   Future<void> _finishDay(int dayIndex) async {
@@ -119,15 +127,19 @@ class _RoutineViewState extends State<RoutineView> {
       // El servidor dice en qué día va (un doble toque no cuenta dos).
       _completed = session.completedAfter;
       _selected = null; // salta al nuevo "hoy"
+      _justSaved = session.closesRound && _days.length > 1 ? null : session;
     });
     if (session.closesRound && _days.length > 1) {
       await _showRoundComplete(session);
-    } else if (session.closesRound) {
-      _snack('¡Rutina completada! Quedó guardada en tu progreso.',
-          action: SnackBarAction(label: 'Deshacer', onPressed: () => _undo(session)));
     } else {
-      _snack('¡Buen trabajo! Quedó en tu progreso. La próxima vez te toca el ${_shortName(_today)}.',
-          action: SnackBarAction(label: 'Deshacer', onPressed: () => _undo(session)));
+      // Sube hasta el aviso: se ve el día guardado y lo que toca después.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = _savedKey.currentContext;
+        if (ctx != null) {
+          Scrollable.ensureVisible(ctx,
+              duration: const Duration(milliseconds: 300), alignment: 0.3);
+        }
+      });
     }
   }
 
@@ -140,6 +152,7 @@ class _RoutineViewState extends State<RoutineView> {
       setState(() {
         _completed = session.completedAfter - 1;
         _selected = null;
+        _justSaved = null;
       });
       _snack('Listo, se quitó el ${_dayLabel(session)} de tu progreso.');
     } catch (e) {
@@ -257,6 +270,19 @@ class _RoutineViewState extends State<RoutineView> {
           ),
         if (multiDay) const SizedBox(height: AppSpacing.lg),
 
+        // ---- Aviso del día recién guardado ----
+        if (_justSaved != null) ...[
+          _SavedNotice(
+            key: _savedKey,
+            text: _justSaved!.closesRound
+                ? '¡Rutina completada! Quedó guardada en tu progreso.'
+                : '¡Buen trabajo! El ${_dayLabel(_justSaved!)} quedó en tu progreso.'
+                    '${multiDay ? ' La próxima vez te toca el ${_shortName(_today)}.' : ''}',
+            onUndo: () => _undo(_justSaved!),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+
         // ---- Selector de días ----
         if (multiDay) ...[
           SingleChildScrollView(
@@ -272,6 +298,8 @@ class _RoutineViewState extends State<RoutineView> {
                       avatar: i < _today ? const Icon(Icons.check_circle, size: 18) : null,
                       label: Text(i == _today ? '${_shortName(i)} · Hoy' : _shortName(i)),
                       selected: i == selected,
+                      // La palomita es solo para días hechos, no para el elegido.
+                      showCheckmark: false,
                       onSelected: (_) => setState(() => _selected = i),
                     ),
                   ),
@@ -318,6 +346,35 @@ class _RoutineViewState extends State<RoutineView> {
   }
 }
 
+/// Aviso dentro de la página tras terminar un día, con "Deshacer".
+class _SavedNotice extends StatelessWidget {
+  final String text;
+  final VoidCallback onUndo;
+
+  const _SavedNotice({super.key, required this.text, required this.onUndo});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.xs, AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: AppColors.accent),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(child: Text(text, style: AppTextStyles.bodySm)),
+          TextButton(onPressed: onUndo, child: const Text('Deshacer')),
+        ],
+      ),
+    );
+  }
+}
+
 /// "¡Completaste tu rutina!": se muestra al terminar el último día de una
 /// vuelta. Devuelve 'progress', 'undo' o null (cerrar).
 class _RoundCompleteSheet extends StatelessWidget {
@@ -338,7 +395,10 @@ class _RoundCompleteSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.screenX, 0, AppSpacing.screenX, AppSpacing.lg),
+      // + la barra de navegación del teléfono: si no, "Lo marqué por error"
+      // quedaba debajo de ella.
+      padding: EdgeInsets.fromLTRB(AppSpacing.screenX, 0, AppSpacing.screenX,
+          AppSpacing.lg + MediaQuery.viewPaddingOf(context).bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

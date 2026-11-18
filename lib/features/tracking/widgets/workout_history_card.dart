@@ -115,9 +115,10 @@ class WorkoutSessionTile extends StatelessWidget {
     final s = session;
     final (day, focus) = RoutineSchedule.splitDayName(s.day);
     final title = s.day.isEmpty ? s.planName : [day, if (focus.isNotEmpty) focus].join(' — ');
+    // La fecha primero: el nombre de la rutina es largo y se corta.
     final subtitle = [
-      if (s.day.isNotEmpty) s.planName,
       s.dateLabel,
+      if (s.day.isNotEmpty) s.planName,
       '${s.exercises} ejercicios',
     ].join('  ·  ');
     return Padding(

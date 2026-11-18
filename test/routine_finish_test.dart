@@ -110,8 +110,32 @@ void main() {
   testWidgets('un día normal avisa que quedó en el progreso', (tester) async {
     await _pump(tester, _plan(), _FakeService(dayCount: 3));
     await tester.tap(find.text('Terminé el Día 1'));
-    await tester.pump();
-    expect(find.textContaining('Quedó en tu progreso'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('¡Buen trabajo! El Día 1 quedó en tu progreso. La próxima vez te toca el Día 2.'),
+        findsOneWidget);
+    expect(find.text('Terminé el Día 2'), findsOneWidget);
+    // El aviso va dentro de la página, no en un SnackBar que tape el botón.
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
+  testWidgets('se pueden terminar días seguidos y deshacer desde el aviso', (tester) async {
+    final service = _FakeService(dayCount: 3);
+    await _pump(tester, _plan(), service);
+
+    await tester.tap(find.text('Terminé el Día 1'));
+    await tester.pumpAndSettle();
+    // Sin esperar: el botón del siguiente día responde enseguida.
+    await tester.ensureVisible(find.text('Terminé el Día 2'));
+    await tester.tap(find.text('Terminé el Día 2'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('El Día 2 quedó en tu progreso'), findsOneWidget);
+    expect(find.textContaining('El Día 1 quedó'), findsNothing);
+
+    await tester.ensureVisible(find.text('Deshacer'));
+    await tester.tap(find.text('Deshacer'));
+    await tester.pumpAndSettle();
+    expect(service.undone, ['ws-2']);
+    expect(find.text('Deshacer'), findsNothing);
     expect(find.text('Terminé el Día 2'), findsOneWidget);
   });
 
