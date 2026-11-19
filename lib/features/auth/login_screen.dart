@@ -186,23 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   autofillHints: const [AutofillHints.password],
                   textInputAction: TextInputAction.done,
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _isLoading
-                        ? null
-                        : () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => AccessCodeScreen(
-                                  initialIdentifier: _emailController.text.trim(),
-                                ),
-                              ),
-                            ),
-                    child: const Text('¿Primera vez o olvidaste tu contraseña?'),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.xl),
                 AppButton(
                   label: 'Iniciar sesión',
                   loading: _isLoading,
@@ -238,6 +222,26 @@ class _LoginScreenState extends State<LoginScreen> {
                             );
                           },
                     child: const Text('¿No tienes cuenta?  Regístrate'),
+                  ),
+                ),
+                // Tambien sirve a quien se inscribio en recepcion y nunca
+                // eligio contrasena (la pantalla lo explica).
+                Center(
+                  child: TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AccessCodeScreen(
+                                  initialIdentifier: _emailController.text.trim(),
+                                ),
+                              ),
+                            ),
+                    child: Text(
+                      '¿Olvidaste tu contraseña?',
+                      style: AppTextStyles.bodySm,
+                    ),
                   ),
                 ),
               ],
