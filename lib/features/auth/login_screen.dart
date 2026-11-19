@@ -11,6 +11,7 @@ import '../../widgets/ui/app_button.dart';
 import '../../widgets/ui/app_text_field.dart';
 
 import '../home/home_screen.dart';
+import 'access_code_screen.dart';
 import 'google_auth_service.dart';
 import 'user_session.dart';
 
@@ -185,7 +186,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   autofillHints: const [AutofillHints.password],
                   textInputAction: TextInputAction.done,
                 ),
-                const SizedBox(height: AppSpacing.xl),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AccessCodeScreen(
+                                  initialIdentifier: _emailController.text.trim(),
+                                ),
+                              ),
+                            ),
+                    child: const Text('¿Primera vez o olvidaste tu contraseña?'),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
                 AppButton(
                   label: 'Iniciar sesión',
                   loading: _isLoading,

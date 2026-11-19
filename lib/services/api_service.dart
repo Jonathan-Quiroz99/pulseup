@@ -117,6 +117,40 @@ class ApiService {
     return _decodeOrThrow(response);
   }
 
+  /// "Olvide mi contrasena" / primera vez por correo: el servidor manda un
+  /// codigo de 6 digitos si el correo es de un socio. La respuesta es la misma
+  /// exista o no (no revela quien es socio).
+  Future<String> requestAccessCodeByEmail(String correo) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/public/access-code/email'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'correo': correo}),
+    ).timeout(apiTimeout);
+    final data = _decodeOrThrow(response);
+    return data['message']?.toString() ?? 'Revisa tu correo.';
+  }
+
+  /// Canjea el codigo (de recepcion o del correo) y elige contrasena. Crea la
+  /// cuenta si el socio se inscribio en recepcion; si ya tenia, la cambia.
+  /// Devuelve la misma sesion que [memberLogin].
+  Future<Map<String, dynamic>> claimAccessCode({
+    required String identificador,
+    required String codigo,
+    required String password,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/public/access-code/claim'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'identificador': identificador,
+        'codigo': codigo,
+        'password': password,
+      }),
+    ).timeout(apiTimeout);
+    debugPrintApi('ACCESS CODE STATUS: ${response.statusCode}');
+    return _decodeOrThrow(response);
+  }
+
   /// Logs in with a Google credential for an EXISTING member only. Throws
   /// [GoogleAccountNotFoundException] (not a generic Exception) when the
   /// backend reports no account exists yet, so the caller can route to
