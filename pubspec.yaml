@@ -110,9 +110,16 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 
 flutter_launcher_icons:
-  android: true
+  android: "ic_launcher"
   ios: true
-  image_path: "assets/images/logo.png"
+  # Logo LED GYM blanco sobre negro (cuadrado). El logo.png original es
+  # transparente y no cuadrado: como icono se perdia en fondos claros.
+  image_path: "assets/images/app_icon.png"
+  # Android 8+ (icono adaptativo): fondo negro + logo dentro de la zona segura
+  # para que Samsung/Pixel no le recorten las letras al hacerlo redondo.
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
+  remove_alpha_ios: true
 
 flutter_native_splash:
   color: "#000000"
